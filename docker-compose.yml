@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  sample-dapp:
+    build:
+      context: .
+      args:
+        - VITE_GREETING_CONTRACT_ADDRESS=${VITE_GREETING_CONTRACT_ADDRESS}
+        - VITE_PROXY_URL=${VITE_PROXY_URL}
+        - VITE_CHAIN_ID=${VITE_CHAIN_ID}
+        - VITE_CHAIN_NAME=${VITE_CHAIN_NAME}
+        - VITE_NATIVE_CURRENCY_SYMBOL=${VITE_NATIVE_CURRENCY_SYMBOL}
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
