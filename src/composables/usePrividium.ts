@@ -1,4 +1,4 @@
-import { createPrividiumChain, type PrividiumChain, type UserProfile, type OauthScope } from 'prividium';
+import { createPrividiumChain, type PrividiumChain, type UserProfile } from 'prividium';
 import { ref, computed } from 'vue';
 
 const prividiumSdkChain = {
@@ -67,16 +67,14 @@ export function usePrividium() {
     const userRoles = computed(() => userProfile.value?.roles || []);
     const userWallets = computed(() => userProfile.value?.walletAddresses || []);
 
-    async function authenticate(readOnlyAccess = false) {
+    async function authenticate() {
         isAuthenticating.value = true;
         authError.value = null;
 
         try {
-            const authOptions = readOnlyAccess 
-                ? {} // No scopes for read-only access
-                : { scopes: ['wallet:required', 'network:required'] as OauthScope[] };
-            
-            await prividium.authorize(authOptions);
+            await prividium.authorize({
+                scopes: ['wallet:required', 'network:required']
+            });
             isAuthenticated.value = true;
             await loadUserProfile();
 
