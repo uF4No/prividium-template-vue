@@ -6,7 +6,9 @@ Welcome to the ZKsync Prividium™ template! This monorepo provides a complete s
 
 - [ ] Integrate ZKsync SSO smart accounts
 - [ ] Add support for multiple chains in parallel
-
+- [ ] Test Docker images
+- [ ] Test setup scripts
+ 
 ## Repository Structure
 
 - [`web-app/`](./web-app): A Vue 3 + TypeScript frontend demonstrating PRividium authentication and secure RPC proxying to interact with smart contracts.
