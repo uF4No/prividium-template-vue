@@ -1,189 +1,86 @@
-# Sample DApp - zkSync Prividium Integration
+# Prividium Template - Vue & Foundry Monorepo
 
-A Vue 3 + TypeScript sample application demonstrating secure smart contract interactions through Prividium Proxy API.
+Welcome to the ZKsync Prividium™ template! This monorepo provides a complete starting point for building privacy-focused decentralized applications on Prividium™ chains.
 
-## Overview
+## TODOs
 
-This sample dApp showcases how to build a secure Web3 application that:
+- [ ] Integrate ZKsync SSO smart accounts
+- [ ] Add support for multiple chains in parallel
 
-- Authenticates users through OIDC
-- Connects to MetaMask wallets
-- Interacts with smart contracts on zkSync Era through the Prividium proxy
-- Implements proper transaction signing with EIP-712 support
+## Repository Structure
 
-## Features
+- [`web-app/`](./web-app): A Vue 3 + TypeScript frontend demonstrating PRividium authentication and secure RPC proxying to interact with smart contracts.
+- [`contracts/`](./contracts): A basic Foundry-based project with a sample counter contract.
+- [`setup-permissions/`](./setup-permissions): A setup script to configure permissions for the sample counter contract in the ZKsync Prividium™ ecosystem.
 
-- **Secure Authentication**: OAuth 2.0/OpenID Connect integration
-- **Wallet Integration**: MetaMask connection with network switching
-- **Smart Contract Interaction**: Complete CRUD operations on a Greeting contract
-- **Transaction Management**: Real-time transaction history and status tracking
-- **Proxy Integration**: All RPC calls routed through authenticated Prividium proxy
-- **Responsive Design**: Modern UI with CSS custom properties and responsive layout
+## Requirements
 
-## Prerequisites
+This project requires a target ZKsync Prividium™ chain to connect to. You can either run a local Prividium instance following the instructions in the [local Prividium repo](https://github.com/matter-labs/local-prividium) (requires access to private Docker registry) or use a remote Prividium instance.
 
-- Node.js 18+ and Yarn
-- MetaMask browser extension
-- Access to zkSync Era testnet/mainnet
-- Running Prividium proxy service
+- Node.js v22.10.0 or higher
+- pnpm v9.16.1 or higher
+- Foundry v1.0.0 or higher
+
 
 ## Quick Start
 
-1. **Install dependencies**:
+### 1. Install Dependencies
 
-   ```bash
-   yarn install
-   ```
+This project uses `pnpm` workspaces. Install everything from the root:
 
-2. **Configure environment variables**: Create `.env` file (or copy `.env.example`) with:
+```bash
+pnpm install
+```
 
-   ```env
-   # Smart Contract
-   VITE_GREETING_CONTRACT_ADDRESS=0x...
+### 2. Configure Environment
 
-   # Prividium Proxy
-   VITE_PROXY_URL=http://localhost:4041/rpc
+Initialize the environment variables using the provided script:
 
-   # Network Configuration
-   VITE_CHAIN_ID=324
-   VITE_CHAIN_NAME=zkSync Era
-   VITE_NATIVE_CURRENCY_SYMBOL=ETH
-   ```
+```bash
+pnpm setup-env
+```
 
-3. **Start development server**:
+Then, update the values in the newly created `.env` files within `web-app/` and `contracts/` if needed.
 
-   ```bash
-   yarn dev
-   ```
+### 3. Development
 
-4. **Open browser** to `http://localhost:4000`
+#### Web Application
+Start the frontend with hot-reload:
+
+```bash
+pnpm dev
+```
+
+#### Smart Contracts
+Compile and test your contracts:
+
+```bash
+pnpm --filter contracts build
+pnpm --filter contracts test
+```
+
+## Global Scripts
+
+We provide several convenient scripts at the root level:
+
+- `pnpm build`: Builds all packages (Contracts & Web App).
+- `pnpm test`: Runs tests across the entire workspace.
+- `pnpm lint`: Runs Biome linter on all supported files.
+- `pnpm format`: Automatically formats the codebase using Biome and Forge.
+- `pnpm check`: Runs both linting and formatting verification.
 
 ## Architecture
 
-### Tech Stack
+This template is designed to work with **ZKsync Prividium**, utilizing:
+- **OIDC Authentication**: Secure user login.
+- **Prividium Proxy**: All blockchain interactions are routed through an authenticated proxy for enhanced security and privacy.
+- **EIP-712**: Structured data signing for clear user intent.
 
-- **Vue 3**: Composition API with TypeScript
-- **Viem**: Ethereum library for wallet and contract interactions
-- **Wagmi**: React hooks for Ethereum (Vue port)
-- **Vite**: Build tool and development server
+For more details on each component, please check their respective README files:
+- [Web App Documentation](./web-app/README.md)
+- [Smart Contracts Documentation](./contracts/README.md)
 
-### Key Components
 
-#### Authentication Flow
+## License
 
-- **Login**: OIDC OAuth 2.0 with PKCE flow
-- **Callback**: Handles authentication redirect
-- **Protected Routes**: Automatic redirection based on auth state
-
-#### Wallet Integration
-
-- **MetaMask Connection**: Automatic wallet detection and connection
-- **Network Switching**: Prompts to switch to correct network
-- **Account Management**: Real-time account and network status
-
-#### Smart Contract Integration
-
-- **Read Operations**: `getGreeting()`, `getContractInfo()`, `owner()`, `updateCount()`
-- **Write Operations**: `setGreeting()`, `updateGreeting()`, `transferOwnership()`
-- **Transaction Signing**: EIP-712 compliant transaction signing
-- **Proxy Communication**: All RPC calls authenticated through Prividium
-
-### Project Structure
-
-```
-src/
-├── main.ts                     # App entry point
-├── App.vue                     # Root component
-├── router/index.ts            # Vue Router with auth guards
-├── views/
-│   ├── LoginView.vue          # Login page
-│   └── MainView.vue           # Main contract interface
-├── composables/
-│   ├── useWallet.ts           # Wallet connection management
-│   ├── useRpcClient.ts        # Authenticated RPC client
-│   └── useGreetingContract.ts # Smart contract interactions
-├── wagmi.ts                   # Wagmi configuration
-└── assets/                    # Styles and assets
-```
-
-## Smart Contract Interface
-
-The sample interacts with a Greeting contract with the following functions:
-
-### Read Functions
-
-- `getGreeting()`: Returns current greeting message
-- `getContractInfo()`: Returns greeting, owner, and update count
-- `owner()`: Returns contract owner address
-- `updateCount()`: Returns total number of updates
-
-### Write Functions
-
-- `setGreeting(string)`: Owner-only function to set greeting
-- `updateGreeting(string)`: Public function to update greeting
-- `transferOwnership(address)`: Transfer contract ownership
-
-## Authentication & Security
-
-### OIDC Integration
-
-- OAuth 2.0 Authorization Code flow with PKCE
-- Secure token storage and automatic refresh
-- ID token passed to Prividium proxy for authorization
-
-### Transaction Security
-
-- EIP-712 structured data signing
-- MetaMask signature verification
-- Authenticated RPC calls through Prividium proxy
-
-### Network Security
-
-- All blockchain interactions routed through authenticated proxy
-- Permission-based access control via Prividium
-- No direct RPC endpoint exposure
-
-## Development Commands
-
-```bash
-# Development
-yarn dev          # Start development server
-yarn preview      # Preview production build
-
-# Build & Type Checking
-yarn build        # Full production build
-yarn build-only   # Build without type checking
-yarn typecheck   # TypeScript type checking only
-```
-
-## Environment Variables
-
-| Variable                         | Description              | Example                     |
-| -------------------------------- | ------------------------ | --------------------------- |
-| `VITE_GREETING_CONTRACT_ADDRESS` | Smart contract address   | `0x123...`                  |
-| `VITE_PROXY_URL`                 | Prividium proxy endpoint | `http://localhost:4041/rpc` |
-| `VITE_CHAIN_ID`                  | Network chain ID         | `324`                       |
-| `VITE_CHAIN_NAME`                | Network display name     | `zkSync Era`                |
-| `VITE_NATIVE_CURRENCY_SYMBOL`    | Native currency symbol   | `ETH`                       |
-
-> **Note**: The sample dApp uses the authenticated `/rpc` endpoint for direct contract interaction calls. Network
-> configuration (including personal RPC endpoints) should be done through the **user-panel** application.
-
-## Usage Guide
-
-### Prerequisites
-
-Before using the sample dApp, you must add the Prividium network to MetaMask:
-
-1. Navigate to the **user-panel** application
-2. Sign in with the test Keycloak credentials
-3. Use the "Add Network to Wallet" button to add the Prividium network with your personal RPC endpoint
-
-### Using the Sample dApp
-
-1. **Login**: Click "Sign In with Keycloak" to authenticate
-2. **Connect Wallet**: Click "Connect Wallet" to connect MetaMask (ensure you're on the Prividium network)
-3. **Enter Contract Address**: Input the deployed contract address
-4. **Read Data**: Use read functions to query contract state
-5. **Write Data**: Use write functions to modify contract state
-6. **Monitor Transactions**: View transaction history and status
+This project is licensed under the MIT License.

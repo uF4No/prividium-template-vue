@@ -1,38 +1,19 @@
 {
-    "name": "sample-dapp",
+    "name": "prividium-template-vue",
     "version": "0.0.0",
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "vite --port 3000",
-        "build": "run-p typecheck \"build-only {@}\" --",
-        "preview": "vite preview",
-        "build-only": "vite build",
-        "typecheck": "vue-tsc --build",
-        "lint": "eslint . --ignore-path ../../.gitignore --max-warnings 0 --cache --cache-strategy content --cache-location ../../.eslint-cache/sample-dapp",
-        "lint:fix": "eslint . --fix --ignore-path ../../.gitignore --cache --cache-strategy content --cache-location ../../.eslint-cache/sample-dapp"
-    },
-    "dependencies": {
-        "@tanstack/vue-query": "^5.17.1",
-        "@vueuse/core": "^13.5.0",
-        "@wagmi/connectors": "5.8.5",
-        "@wagmi/core": "2.17.3",
-        "@wagmi/vue": "0.1.22",
-        "prividium": "^0.1.2",
-        "viem": "2.31.7",
-        "vue": "^3.5.17",
-        "vue-router": "^4.5.1"
+        "dev": "pnpm --filter web-app dev",
+        "build": "pnpm -r build",
+        "test": "pnpm -r test",
+        "setup-env": "cp web-app/.env.example web-app/.env && cp contracts/.env.example contracts/.env",
+        "lint": "biome lint .",
+        "format": "biome format --write .",
+        "check": "biome check --write ."
     },
     "devDependencies": {
-        "@tsconfig/node22": "^22.0.2",
-        "@types/node": "^22.15.32",
-        "@vitejs/plugin-vue": "^6.0.0",
-        "@vue/tsconfig": "^0.7.0",
-        "eslint": "^8",
-        "npm-run-all2": "^8.0.4",
-        "typescript": "~5.8.0",
-        "vite": "^7.0.0",
-        "vite-plugin-vue-devtools": "^7.7.7",
-        "vue-tsc": "^2.2.10"
-    }
+        "@biomejs/biome": "1.9.4"
+    },
+    "packageManager": "pnpm@9.2.0"
 }

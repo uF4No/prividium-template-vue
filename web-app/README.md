@@ -1,0 +1,143 @@
+# Web App - ZKsync Prividium™ Integration
+
+A Vue 3 + TypeScript sample application demonstrating secure smart contract interactions through Prividium Proxy API.
+
+## TODO
+
+- [ ] Make title and accent color configurable
+- [ ] Integrate SSO
+- [ ] Update UI to match new design system ZKsync
+- [ ] Add top navbar and footer
+
+## Overview
+
+This sample dApp showcases how to build a secure Web3 application that:
+
+- Authenticates users through OIDC
+- Connects to MetaMask wallets
+- Interacts with smart contracts on ZKsync Prividium chain through the Prividium proxy
+- Implements proper transaction signing with EIP-712 support
+
+## Features
+
+- **Secure Authentication**: OAuth 2.0/OpenID Connect integration
+- **Wallet Integration**: MetaMask connection with network switching
+- **Smart Contract Interaction**: Complete CRUD operations on a Counter contract
+- **Transaction Management**: Real-time transaction history and status tracking
+- **Proxy Integration**: All RPC calls routed through authenticated Prividium proxy
+- **Responsive Design**: Modern UI with CSS custom properties and responsive layout
+
+## Prerequisites
+
+- Node.js 18+ and pnpm
+- MetaMask browser extension
+- Access to ZKsync Prividium chain
+- Running Prividium proxy service
+
+## Architecture
+
+### Tech Stack
+
+- **Vue 3**: Composition API with TypeScript
+- **Viem**: Ethereum library for wallet and contract interactions
+- **Wagmi**: React hooks for Ethereum (Vue port)
+- **Vite**: Build tool and development server
+
+### Key Components
+
+#### Authentication Flow
+
+- **Login**: OIDC OAuth 2.0 with PKCE flow
+- **Callback**: Handles authentication redirect
+- **Protected Routes**: Automatic redirection based on auth state
+
+#### Wallet Integration
+
+- **MetaMask Connection**: Automatic wallet detection and connection
+- **Network Switching**: Prompts to switch to correct network
+- **Account Management**: Real-time account and network status
+
+#### Smart Contract Integration
+
+- **Read Operations**: `getGreeting()`, `getContractInfo()`, `owner()`, `updateCount()`
+- **Write Operations**: `setGreeting()`, `updateGreeting()`, `transferOwnership()`
+- **Transaction Signing**: EIP-712 compliant transaction signing
+- **Proxy Communication**: All RPC calls authenticated through Prividium
+
+### Project Structure
+
+```
+src/
+├── main.ts                     # App entry point
+├── App.vue                     # Root component
+├── router/index.ts            # Vue Router with auth guards
+├── views/
+│   ├── LoginView.vue          # Login page
+│   └── MainView.vue           # Main contract interface
+├── composables/
+│   ├── useWallet.ts           # Wallet connection management
+│   ├── useRpcClient.ts        # Authenticated RPC client
+│   └── useGreetingContract.ts # Smart contract interactions
+├── wagmi.ts                   # Wagmi configuration
+└── assets/                    # Styles and assets
+```
+## Smart Contract Interface
+
+The sample interacts with a Counter contract with the following functions:
+
+### Read Functions
+
+- `x()`: Returns current counter value
+
+### Write Functions
+
+- `inc()`: Increments the counter by 1
+- `incBy(uint256)`: Increments the counter by a specific amount
+
+## Authentication & Security
+
+### OIDC Integration
+
+- OAuth 2.0 Authorization Code flow with PKCE
+- Secure token storage and automatic refresh
+- ID token passed to Prividium proxy for authorization
+
+### Transaction Security
+
+- EIP-712 structured data signing
+- MetaMask signature verification
+- Authenticated RPC calls through Prividium proxy
+
+### Network Security
+
+- All blockchain interactions routed through authenticated proxy
+- Permission-based access control via Prividium
+- No direct RPC endpoint exposure
+
+## Development Commands
+
+Run these from the `web-app` directory or use `pnpm --filter web-app <command>` from the root.
+
+```bash
+# Development
+pnpm dev          # Start development server
+pnpm preview      # Preview production build
+
+# Build & Type Checking
+pnpm build        # Full production build
+pnpm build-only   # Build without type checking
+pnpm typecheck    # TypeScript type checking only
+```
+
+## Environment Variables
+
+| Variable                         | Description              | Example                     |
+| -------------------------------- | ------------------------ | --------------------------- |
+| `VITE_COUNTER_CONTRACT_ADDRESS`  | Smart contract address   | `0x123...`                  |
+| `VITE_PROXY_URL`                 | Prividium proxy endpoint | `http://localhost:4041/rpc` |
+| `VITE_CHAIN_ID`                  | Network chain ID         | `324`                       |
+| `VITE_CHAIN_NAME`                | Network display name     | `ZKsync Prividium`          |
+| `VITE_NATIVE_CURRENCY_SYMBOL`    | Native currency symbol   | `ETH`                       |
+
+> **Note**: The sample dApp uses the authenticated `/rpc` endpoint for direct contract interaction calls. Network
+> configuration (including personal RPC endpoints) should be done through the **user-panel** application.
