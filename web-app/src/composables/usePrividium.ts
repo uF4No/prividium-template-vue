@@ -1,4 +1,4 @@
-import { createPrividiumChain, type PrividiumChain, type UserProfile } from 'prividium';
+import { type PrividiumChain, type UserProfile, createPrividiumChain } from 'prividium';
 import { computed, ref } from 'vue';
 
 const stripApiSuffix = (url?: string) => {
@@ -8,7 +8,7 @@ const stripApiSuffix = (url?: string) => {
 };
 
 const prividiumSdkChain = {
-  id: parseInt(import.meta.env.VITE_PRIVIDIUM_CHAIN_ID),
+  id: Number.parseInt(import.meta.env.VITE_PRIVIDIUM_CHAIN_ID),
   name: import.meta.env.VITE_PRIVIDIUM_CHAIN_NAME,
   nativeCurrency: {
     name: import.meta.env.VITE_PRIVIDIUM_NATIVE_CURRENCY_SYMBOL,
@@ -37,7 +37,7 @@ function initializePrividium(): PrividiumChain {
       chain: prividiumSdkChain,
       rpcUrl: import.meta.env.VITE_PRIVIDIUM_RPC_URL,
       authBaseUrl: import.meta.env.VITE_PRIVIDIUM_AUTH_BASE_URL,
-      redirectUrl: window.location.origin + '/auth-callback.html',
+      redirectUrl: `${window.location.origin}/auth-callback.html`,
       permissionsApiBaseUrl: stripApiSuffix(import.meta.env.VITE_PRIVIDIUM_API_URL) ?? '',
       onAuthExpiry: () => {
         console.log('Authentication expired');
@@ -60,7 +60,8 @@ async function loadUserProfile() {
   try {
     const sdkProfile = await prividium.fetchUser();
     console.debug('[prividium] fetchUser result', sdkProfile);
-    const sdkUserId = (sdkProfile as any)?.userId ?? (sdkProfile as any)?.id ?? null;
+    const sdkProfileWithId = sdkProfile as UserProfile & { id?: string };
+    const sdkUserId = sdkProfileWithId.userId ?? sdkProfileWithId.id ?? null;
     if (sdkUserId) {
       userProfile.value = {
         ...(sdkProfile as UserProfile),
@@ -94,18 +95,50 @@ async function loadUserProfile() {
       if (!response.ok) {
         continue;
       }
-      const data = await response.json();
+      const data = (await response.json()) as {
+        walletAddresses?: string[];
+        wallets?: Array<{ walletAddress: string }>;
+        userId?: string;
+        id?: string;
+        user?: { id?: string };
+        profileId?: string;
+        createdAt: string;
+        updatedAt: string;
+        displayName?: string;
+        roles?: unknown[];
+      };
       console.debug('[prividium] /profiles/me response', data);
       const walletAddresses =
         data.walletAddresses ??
-        (Array.isArray(data.wallets) ? data.wallets.map((w: any) => w.walletAddress) : []);
+        (Array.isArray(data.wallets) ? data.wallets.map((w) => w.walletAddress) : []);
       const userId = data.userId ?? data.id ?? data.user?.id ?? data.profileId ?? null;
+      if (!userId) {
+        throw new Error('User profile missing id');
+      }
+      const roles = Array.isArray(data.roles)
+        ? data.roles
+            .map((role) => {
+              if (typeof role === 'string') {
+                return { roleName: role };
+              }
+              if (
+                role &&
+                typeof role === 'object' &&
+                'roleName' in role &&
+                typeof (role as { roleName?: unknown }).roleName === 'string'
+              ) {
+                return { roleName: (role as { roleName: string }).roleName };
+              }
+              return null;
+            })
+            .filter((role): role is { roleName: string } => role !== null)
+        : [];
       userProfile.value = {
         userId,
         createdAt: new Date(data.createdAt),
         displayName: data.displayName ?? null,
         updatedAt: new Date(data.updatedAt),
-        roles: data.roles ?? [],
+        roles,
         walletAddresses
       };
       return;

@@ -1,5 +1,5 @@
-import { StatusCodes } from "http-status-codes";
-import { z } from "zod";
+import { StatusCodes } from 'http-status-codes';
+import { z } from 'zod';
 
 export class ServiceResponse<T = null> {
   readonly success: boolean;
@@ -18,7 +18,11 @@ export class ServiceResponse<T = null> {
     return new ServiceResponse(true, message, responseObject, statusCode);
   }
 
-  static failure<T>(message: string, responseObject: T, statusCode: number = StatusCodes.BAD_REQUEST) {
+  static failure<T>(
+    message: string,
+    responseObject: T,
+    statusCode: number = StatusCodes.BAD_REQUEST
+  ) {
     return new ServiceResponse(false, message, responseObject, statusCode);
   }
 }
@@ -28,5 +32,5 @@ export const ServiceResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
     success: z.boolean(),
     message: z.string(),
     responseObject: dataSchema.optional(),
-    statusCode: z.number(),
+    statusCode: z.number()
   });

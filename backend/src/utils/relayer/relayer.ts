@@ -1,7 +1,7 @@
-import { client } from "../client";
-import { finalizeTx } from "./finalize";
-import { extractTxMetadata } from "./metadata";
-import { loadFinalizedTxs, loadPendingTxs, saveFinalizedTxs, savePendingTxs } from "./state";
+import { client } from '../client';
+import { finalizeTx } from './finalize';
+import { extractTxMetadata } from './metadata';
+import { loadFinalizedTxs, loadPendingTxs, saveFinalizedTxs, savePendingTxs } from './state';
 
 // Lock to prevent concurrent processing
 let isProcessing = false;
@@ -9,21 +9,21 @@ let isProcessing = false;
 export async function processQueue() {
   // Skip if already processing
   if (isProcessing) {
-    console.log(`⏭️  Skipping queue processing - already in progress`);
+    console.log('⏭️  Skipping queue processing - already in progress');
     return;
   }
 
   isProcessing = true;
   try {
-    console.log(`\n${"=".repeat(80)}`);
+    console.log(`\n${'='.repeat(80)}`);
     console.log(`🔄 Processing queue... ${new Date().toLocaleTimeString()}`);
-    console.log("=".repeat(80));
+    console.log('='.repeat(80));
 
     const pendingTxs = loadPendingTxs();
     const finalizedTxs = loadFinalizedTxs();
 
     if (pendingTxs.length === 0) {
-      console.log("ℹ️  No pending transactions to process");
+      console.log('ℹ️  No pending transactions to process');
       return;
     }
 
@@ -40,12 +40,14 @@ export async function processQueue() {
             const metadata = await extractTxMetadata(receipt);
             tx.action = metadata.action;
             tx.amount = metadata.amount;
-            console.log(`📝 Backfilled metadata for ${tx.hash}: ${metadata.action} ${metadata.amount} ETH`);
+            console.log(
+              `📝 Backfilled metadata for ${tx.hash}: ${metadata.action} ${metadata.amount} ETH`
+            );
           }
         } catch {
           // If we can't get metadata, set defaults
-          tx.action = tx.action || "Unknown";
-          tx.amount = tx.amount || "0";
+          tx.action = tx.action || 'Unknown';
+          tx.amount = tx.amount || '0';
         }
       }
 
@@ -55,22 +57,22 @@ export async function processQueue() {
         console.log(`✅ Removed from queue: ${tx.hash}`);
         finalizedTxs.unshift({
           l2TxHash: tx.hash,
-          l1FinalizeTxHash: result.txHash || "0x000",
+          l1FinalizeTxHash: result.txHash || '0x000',
           finalizedAt: new Date().toISOString(),
           action: tx.action,
           amount: tx.amount,
-          accountAddress: result.accountAddress,
+          accountAddress: result.accountAddress
         });
       } else if (
-        result.reason === "proof_not_ready" ||
-        result.reason === "l1_pending" ||
-        result.reason === "withdrawal_not_ready"
+        result.reason === 'proof_not_ready' ||
+        result.reason === 'l1_pending' ||
+        result.reason === 'withdrawal_not_ready'
       ) {
         console.log(`⏳ Still pending: ${tx.hash}`);
         stillPending.push({
           ...tx,
           lastFinalizeHash: tx.lastFinalizeHash,
-          updatedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         });
       } else {
         console.log(`❌ Failed permanently: ${tx.hash} (${result.reason})`);

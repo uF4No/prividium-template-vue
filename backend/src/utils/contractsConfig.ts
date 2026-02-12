@@ -1,7 +1,7 @@
-import fs from "node:fs";
-import path from "node:path";
+import fs from 'node:fs';
+import path from 'node:path';
 
-import { env } from "./envConfig";
+import { env } from './envConfig';
 
 export type ContractsConfig = {
   sso?: {
@@ -23,7 +23,7 @@ export type ContractsConfig = {
   };
 };
 
-const DEFAULT_CONFIG_PATH = path.join(process.cwd(), "config", "contracts.json");
+const DEFAULT_CONFIG_PATH = path.join(process.cwd(), 'config', 'contracts.json');
 
 function resolveConfigPath(): string | null {
   if (env.CONTRACTS_CONFIG_PATH) {
@@ -49,7 +49,7 @@ export function loadContractsConfig(): ContractsConfig | null {
     return null;
   }
 
-  const raw = fs.readFileSync(configPath, "utf8");
+  const raw = fs.readFileSync(configPath, 'utf8');
   if (!raw.trim()) {
     return null;
   }
@@ -60,8 +60,6 @@ export function loadContractsConfig(): ContractsConfig | null {
 export function warnIfMismatch(label: string, fromConfig?: string, fromEnv?: string) {
   if (!fromConfig || !fromEnv) return;
   if (fromConfig.toLowerCase() !== fromEnv.toLowerCase()) {
-    console.warn(
-      `⚠️  ${label} mismatch: config=${fromConfig} env=${fromEnv}. Using config value.`,
-    );
+    console.warn(`⚠️  ${label} mismatch: config=${fromConfig} env=${fromEnv}. Using config value.`);
   }
 }

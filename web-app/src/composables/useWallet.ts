@@ -1,11 +1,5 @@
 import { metaMask } from '@wagmi/connectors';
-import {
-  connect,
-  disconnect,
-  getAccount,
-  watchAccount,
-  getChainId,
-} from '@wagmi/core';
+import { connect, disconnect, getAccount, getChainId, watchAccount } from '@wagmi/core';
 import { createWalletClient, custom } from 'viem';
 import { computed, ref } from 'vue';
 import { config, prividiumChain } from '../wagmi';
@@ -16,6 +10,10 @@ const account = ref(getAccount(config));
 const currentChainId = ref(getChainId(config));
 const isConnecting = ref(false);
 const error = ref<string | null>(null);
+
+type EthereumProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+};
 
 // Initialize watchers once
 watchAccount(config, {
@@ -85,7 +83,7 @@ export function useWallet() {
       throw new Error('Wallet not detected');
     }
 
-    const ethereum = window.ethereum as any;
+    const ethereum = window.ethereum as EthereumProvider;
     const chainIdHex = `0x${prividiumChain.id.toString(16)}`;
 
     try {
@@ -93,11 +91,12 @@ export function useWallet() {
       try {
         await ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: chainIdHex }],
+          params: [{ chainId: chainIdHex }]
         });
         console.log('Switched to Prividium network');
-      } catch (switchError: any) {
-        if (switchError.code === 4902) {
+      } catch (switchError) {
+        const errorWithCode = switchError as { code?: number };
+        if (errorWithCode.code === 4902) {
           console.log('Network not found, adding it...');
         } else {
           throw switchError;
@@ -106,7 +105,7 @@ export function useWallet() {
 
       // 2. Add/Update with the per-user RPC URL
       const walletRpcUrl = await prividium.getWalletRpcUrl();
-      
+
       await ethereum.request({
         method: 'wallet_addEthereumChain',
         params: [
@@ -116,17 +115,17 @@ export function useWallet() {
             nativeCurrency: {
               name: prividiumChain.nativeCurrency?.name || 'Ether',
               symbol: prividiumChain.nativeCurrency?.symbol || 'ETH',
-              decimals: prividiumChain.nativeCurrency?.decimals || 18,
+              decimals: prividiumChain.nativeCurrency?.decimals || 18
             },
             rpcUrls: [walletRpcUrl],
             blockExplorerUrls: prividiumChain.blockExplorers?.default?.url
               ? [prividiumChain.blockExplorers.default.url]
-              : undefined,
-          },
-        ],
+              : undefined
+          }
+        ]
       });
       console.log('Prividium network configured with /wallet/{token} RPC URL');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error ensuring network configuration:', err);
       throw err;
     }
@@ -137,20 +136,22 @@ export function useWallet() {
     try {
       error.value = null;
       console.log('Switching to Prividium network...');
-      
+
       await ensureNetworkConfigured();
-      
+
       // Poll for chain ID update (matching React's polling logic)
       const maxAttempts = 20;
       let attempts = 0;
-      
+
       while (attempts < maxAttempts) {
         await new Promise((resolve) => setTimeout(resolve, 250));
-        
+
         if (window.ethereum) {
-          const hexId = await (window.ethereum as any).request({ method: 'eth_chainId' });
-          const providerChainId = parseInt(hexId, 16);
-          
+          const hexId = (await (window.ethereum as EthereumProvider).request({
+            method: 'eth_chainId'
+          })) as string;
+          const providerChainId = Number.parseInt(hexId, 16);
+
           if (providerChainId === prividiumChain.id) {
             console.log('Chain switch completed successfully. ChainId:', providerChainId);
             break;
@@ -158,7 +159,7 @@ export function useWallet() {
         }
         attempts++;
       }
-      
+
       account.value = getAccount(config);
       currentChainId.value = getChainId(config);
     } catch (err) {
@@ -177,13 +178,17 @@ export function useWallet() {
     // Direct check of the provider's chain ID
     const getActualChainId = async () => {
       if (!window.ethereum) return 0;
-      const hexId = await (window.ethereum as any).request({ method: 'eth_chainId' });
-      return parseInt(hexId as string, 16);
+      const hexId = (await (window.ethereum as EthereumProvider).request({
+        method: 'eth_chainId'
+      })) as string;
+      return Number.parseInt(hexId, 16);
     };
 
     let actualCid = await getActualChainId();
     if (actualCid !== prividiumChain.id) {
-      console.log(`Current chain ${actualCid} does not match target ${prividiumChain.id}. Switching...`);
+      console.log(
+        `Current chain ${actualCid} does not match target ${prividiumChain.id}. Switching...`
+      );
       await switchToCorrectNetwork();
       actualCid = await getActualChainId();
     }
@@ -207,7 +212,7 @@ export function useWallet() {
     disconnectWallet,
     switchToCorrectNetwork,
     ensureWalletReady,
-    cleanup: () => {}, 
+    cleanup: () => {},
     customChain: prividiumChain
   };
 }

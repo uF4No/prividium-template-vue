@@ -1,25 +1,25 @@
-import type { Address } from "viem";
+import type { Address } from 'viem';
 
-import { client } from "../client";
-import { SSO_CONTRACTS } from "../constants";
-import { env } from "../envConfig";
+import { client } from '../client';
+import { SSO_CONTRACTS } from '../constants';
+import { env } from '../envConfig';
 
 let runtimeBeaconAddress: Address | null = null;
 let runtimeImplementationAddress: Address | null = null;
 
 const BEACON_READ_ABI = [
   {
-    type: "function",
-    name: "implementation",
+    type: 'function',
+    name: 'implementation',
     inputs: [],
-    outputs: [{ name: "", type: "address" }],
-    stateMutability: "view",
-  },
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view'
+  }
 ] as const;
 
 async function hasCode(address: Address): Promise<boolean> {
   const code = await client.l2.getBytecode({ address });
-  return !!code && code !== "0x";
+  return !!code && code !== '0x';
 }
 
 export function getBeaconAddress(): Address {
@@ -27,10 +27,7 @@ export function getBeaconAddress(): Address {
 }
 
 export function getAccountImplementationAddress(): Address {
-  return (
-    runtimeImplementationAddress ??
-    (SSO_CONTRACTS.accountImplementation as Address)
-  );
+  return runtimeImplementationAddress ?? (SSO_CONTRACTS.accountImplementation as Address);
 }
 
 async function ensureAccountImplementationAvailable(): Promise<Address> {
@@ -41,9 +38,7 @@ async function ensureAccountImplementationAvailable(): Promise<Address> {
       runtimeImplementationAddress = configured;
       return configured;
     }
-    throw new Error(
-      `No code at configured account implementation: ${configured}`,
-    );
+    throw new Error(`No code at configured account implementation: ${configured}`);
   }
 
   const defaultImpl = SSO_CONTRACTS.accountImplementation as Address;
@@ -53,7 +48,7 @@ async function ensureAccountImplementationAvailable(): Promise<Address> {
   }
 
   throw new Error(
-    "SSO account implementation contract not found. Run setup-permissions to deploy SSO contracts.",
+    'SSO account implementation contract not found. Run setup-permissions to deploy SSO contracts.'
   );
 }
 
@@ -66,12 +61,10 @@ export async function ensureBeaconDeployed(): Promise<Address> {
     const implementation = (await client.l2.readContract({
       address: configured,
       abi: BEACON_READ_ABI,
-      functionName: "implementation",
+      functionName: 'implementation'
     })) as Address;
     if (!(await hasCode(implementation))) {
-      throw new Error(
-        `Beacon implementation has no code at ${implementation}.`,
-      );
+      throw new Error(`Beacon implementation has no code at ${implementation}.`);
     }
     runtimeImplementationAddress = implementation;
     runtimeBeaconAddress = configured;
@@ -85,12 +78,10 @@ export async function ensureBeaconDeployed(): Promise<Address> {
     const implementation = (await client.l2.readContract({
       address: defaultBeacon,
       abi: BEACON_READ_ABI,
-      functionName: "implementation",
+      functionName: 'implementation'
     })) as Address;
     if (!(await hasCode(implementation))) {
-      throw new Error(
-        `Beacon implementation has no code at ${implementation}.`,
-      );
+      throw new Error(`Beacon implementation has no code at ${implementation}.`);
     }
     runtimeImplementationAddress = implementation;
     runtimeBeaconAddress = defaultBeacon;
@@ -100,7 +91,5 @@ export async function ensureBeaconDeployed(): Promise<Address> {
   }
 
   await ensureAccountImplementationAvailable();
-  throw new Error(
-    "SSO beacon contract not found. Run setup-permissions to deploy SSO contracts.",
-  );
+  throw new Error('SSO beacon contract not found. Run setup-permissions to deploy SSO contracts.');
 }

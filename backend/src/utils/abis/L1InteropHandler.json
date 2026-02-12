@@ -23,7 +23,9 @@
       "type": "function",
       "name": "l1NativeTokenVault",
       "inputs": [],
-      "outputs": [{ "name": "", "type": "address", "internalType": "contract IL1NativeTokenVault" }],
+      "outputs": [
+        { "name": "", "type": "address", "internalType": "contract IL1NativeTokenVault" }
+      ],
       "stateMutability": "view"
     },
     {
@@ -119,7 +121,9 @@
           "stateMutability": "view",
           "type": "function",
           "name": "l1NativeTokenVault",
-          "outputs": [{ "internalType": "contract IL1NativeTokenVault", "name": "", "type": "address" }]
+          "outputs": [
+            { "internalType": "contract IL1NativeTokenVault", "name": "", "type": "address" }
+          ]
         },
         {
           "inputs": [],

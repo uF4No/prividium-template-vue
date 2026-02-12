@@ -1,4 +1,4 @@
-import { type Address, encodeFunctionData, getContract, type PublicClient, pad, toHex } from 'viem';
+import { type Address, type PublicClient, encodeFunctionData, getContract, pad, toHex } from 'viem';
 import { loadExistingPasskey } from '../utils/sso/passkeys';
 import { sendTxWithPasskey } from '../utils/sso/sendTxWithPasskey';
 
@@ -47,7 +47,7 @@ export function useCounterContract(
     contractAddress: `0x${string}`;
     nonce: number;
     calldata: `0x${string}`;
-  }) => Promise<{ message: string; activeUntil: string }>,
+  }) => Promise<{ message: string; activeUntil: string }>
 ) {
   const contract = getContract({
     address: contractAddress,
@@ -72,7 +72,9 @@ export function useCounterContract(
     const maxPriorityFeePerGas = 5000000000n;
     const preVerificationGas = 200000n;
 
-    const accountGasLimits = pad(toHex((verificationGasLimit << 128n) | callGasLimit), { size: 32 });
+    const accountGasLimits = pad(toHex((verificationGasLimit << 128n) | callGasLimit), {
+      size: 32
+    });
     const gasFees = pad(toHex((maxPriorityFeePerGas << 128n) | maxFeePerGas), { size: 32 });
 
     return {
@@ -107,7 +109,7 @@ export function useCounterContract(
       txData,
       gasOptions,
       rpcClient,
-      enableWalletToken,
+      enableWalletToken
     );
   };
 

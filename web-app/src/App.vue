@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { usePrividium } from './composables/usePrividium';
-import AppNavbar from './components/AppNavbar.vue';
 import AppFooter from './components/AppFooter.vue';
+import AppNavbar from './components/AppNavbar.vue';
+import { usePrividium } from './composables/usePrividium';
 
 const { isAuthenticated } = usePrividium();
 const accentColor = import.meta.env.VITE_ACCENT_COLOR || '#2563eb';

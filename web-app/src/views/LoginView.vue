@@ -1,25 +1,46 @@
 <script setup lang="ts">
+import { type Address, type Chain, type Transport, createPublicClient } from 'viem';
 import { ref, watch } from 'vue';
-import { createPublicClient, type Address, type Chain, type Transport } from 'viem';
 import { useRoute, useRouter } from 'vue-router';
+import BaseIcon from '../components/BaseIcon.vue';
 import { usePrividium } from '../composables/usePrividium';
 import { useRpcClient } from '../composables/useRpcClient';
-import BaseIcon from '../components/BaseIcon.vue';
-import { createNewPasskey, saveAccountAddress, selectExistingPasskey } from '../utils/sso/passkeys';
 import { DEPLOY_ACCOUNT_ENDPOINT } from '../utils/sso/constants';
+import { createNewPasskey, saveAccountAddress, selectExistingPasskey } from '../utils/sso/passkeys';
 
 const router = useRouter();
 const route = useRoute();
-const { isAuthenticated, isAuthenticating, authError, authenticate, getAuthHeaders, userProfile, refreshUserProfile, getChain, getTransport } = usePrividium();
+const {
+  isAuthenticated,
+  isAuthenticating,
+  authError,
+  authenticate,
+  getAuthHeaders,
+  userProfile,
+  refreshUserProfile,
+  getChain,
+  getTransport
+} = usePrividium();
 const rpcClient = useRpcClient();
 
 const companyName = import.meta.env.VITE_COMPANY_NAME || 'Prividium™';
 const companyIcon = import.meta.env.VITE_COMPANY_ICON || 'CubeIcon';
 
+type UserWallet = { walletAddress: string };
+type UserRole = { roleName: string };
+type UserData = {
+  wallets?: UserWallet[];
+  walletAddresses?: string[];
+  roles?: UserRole[];
+  [key: string]: unknown;
+};
+
 // Passkey State (post-auth)
 const passkeyUsername = ref('');
 const passkeyError = ref<string | null>(null);
-const passkeyStep = ref<'idle' | 'checking' | 'creating' | 'deploying' | 'linking' | 'done'>('idle');
+const passkeyStep = ref<'idle' | 'checking' | 'creating' | 'deploying' | 'linking' | 'done'>(
+  'idle'
+);
 
 watch(isAuthenticated, (next) => {
   if (next) {
@@ -34,7 +55,7 @@ async function assignWalletToUser(walletAddress: string) {
   const userId = userProfile.value?.userId;
 
   if (!userId || !headers) {
-     throw new Error('User not authenticated');
+    throw new Error('User not authenticated');
   }
 
   const apiBaseUrl = import.meta.env.VITE_PRIVIDIUM_API_URL?.replace(/\/$/, '');
@@ -42,7 +63,7 @@ async function assignWalletToUser(walletAddress: string) {
 
   // 1. Fetch current user data
   let userResponse: Response | null = null;
-  let userData: any = null;
+  let userData: UserData | null = null;
 
   for (const url of candidates ?? []) {
     userResponse = await fetch(url, { headers });
@@ -58,29 +79,29 @@ async function assignWalletToUser(walletAddress: string) {
 
   // 2. Prepare payload with existing passkeys/wallets + new one
   // Note: The API GET returns objects in wallets [], but PUT expects strings []
-  const existingWallets = userData.wallets.map((w: any) => w.walletAddress);
+  const existingWallets = (userData.wallets ?? []).map((w) => w.walletAddress);
   const newWallets = [...new Set([...existingWallets, walletAddress])]; // unique
 
   const payload = {
     ...userData,
     wallets: newWallets,
-    // Ensure these fields from GET are what PUT expects (remove keys if necessary, 
+    // Ensure these fields from GET are what PUT expects (remove keys if necessary,
     // but schema says most are required and match)
     // createdAt/updatedAt are usually ignored by server or readonly, but schema required them in PUT?
     // Let's try sending what we got, filtering only immutable system fields if needed.
-    // Schema for PUT /users/{id} includes same fields as GET result essentially. 
+    // Schema for PUT /users/{id} includes same fields as GET result essentially.
     // Note: 'roles' in GET is Object[], in PUT is String[]. We must map it.
-    roles: userData.roles.map((r: any) => r.roleName) 
+    roles: (userData.roles ?? []).map((r) => r.roleName)
   };
-  
+
   // 3. Update user
   let updateResponse: Response | null = null;
   for (const url of candidates ?? []) {
     updateResponse = await fetch(url, {
       method: 'PUT',
       headers: {
-          ...headers,
-          'Content-Type': 'application/json'
+        ...headers,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     });
@@ -90,8 +111,8 @@ async function assignWalletToUser(walletAddress: string) {
   }
 
   if (!updateResponse || !updateResponse.ok) {
-     const error = await updateResponse?.json().catch(() => null);
-     throw new Error(error?.message || 'Failed to link wallet');
+    const error = await updateResponse?.json().catch(() => null);
+    throw new Error(error?.message || 'Failed to link wallet');
   }
 
   console.log('Successfully linked wallet:', walletAddress);
@@ -129,10 +150,10 @@ const createPasskey = async () => {
   try {
     // 1. Create Passkey
     const creds = await createNewPasskey(passkeyUsername.value);
-    
+
     // 2. Deploy Account
     passkeyStep.value = 'deploying';
-    
+
     const response = await fetch(DEPLOY_ACCOUNT_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -149,10 +170,9 @@ const createPasskey = async () => {
     }
 
     const data = await response.json();
-    const accountAddress =
-      data?.responseObject?.accountAddress ?? data?.accountAddress;
+    const accountAddress = data?.responseObject?.accountAddress ?? data?.accountAddress;
     if (!accountAddress) {
-       throw new Error('No account address returned from backend');
+      throw new Error('No account address returned from backend');
     }
 
     // 3. Save Account & link to user
@@ -164,7 +184,6 @@ const createPasskey = async () => {
 
     passkeyUsername.value = '';
     await redirectAfterAuth();
-
   } catch (e) {
     console.error(e);
     passkeyError.value = e instanceof Error ? e.message : 'Unknown error during passkey creation';
@@ -189,27 +208,33 @@ const useExistingPasskey = async () => {
       throw new Error('User profile not available');
     }
     console.debug('[passkeys] profile loaded', userProfile.value);
+    const profileWallets = userProfile.value as {
+      walletAddresses?: string[];
+      wallets?: UserWallet[];
+    } | null;
     console.debug('[passkeys] profile wallets (raw)', {
-      walletAddresses: (userProfile.value as any).walletAddresses,
-      wallets: (userProfile.value as any).wallets,
+      walletAddresses: profileWallets?.walletAddresses,
+      wallets: profileWallets?.wallets
     });
-    const linkedWallets = (
-      userProfile.value.walletAddresses ??
-      ((userProfile.value as any).wallets ?? []).map((w: any) => w.walletAddress)
-    ).map((w) => w.toLowerCase());
+    const profileWalletList = (profileWallets?.wallets ?? []).map((w) => w.walletAddress);
+    const linkedWallets = (userProfile.value.walletAddresses ?? profileWalletList).map((w) =>
+      w.toLowerCase()
+    );
     console.debug('[passkeys] linked wallets (normalized)', linkedWallets);
     if (!linkedWallets.length) {
-      throw new Error('No linked wallets found for this user. Create a new passkey first or link a wallet to your profile.');
+      throw new Error(
+        'No linked wallets found for this user. Create a new passkey first or link a wallet to your profile.'
+      );
     }
     const authClient =
       rpcClient.value ??
       createPublicClient({
         chain: getChain() as unknown as Chain,
-        transport: getTransport() as unknown as Transport,
+        transport: getTransport() as unknown as Transport
       });
     console.debug('[passkeys] rpc client', {
       chain: getChain(),
-      transport: getTransport(),
+      transport: getTransport()
     });
     const fromAddress = linkedWallets[0] as Address;
     console.debug('[passkeys] using from address', fromAddress);
@@ -218,7 +243,10 @@ const useExistingPasskey = async () => {
     passkeyStep.value = 'linking';
     const accountAddress = result.accountAddress?.toLowerCase();
     console.debug('[passkeys] passkey account address', accountAddress);
-    console.debug('[passkeys] passkey linked?', accountAddress ? linkedWallets.includes(accountAddress) : false);
+    console.debug(
+      '[passkeys] passkey linked?',
+      accountAddress ? linkedWallets.includes(accountAddress) : false
+    );
     if (accountAddress && !linkedWallets.includes(accountAddress)) {
       const shouldLink = confirm(
         'This passkey account is not linked to your profile yet. Link it now?'
@@ -238,7 +266,6 @@ const useExistingPasskey = async () => {
     passkeyStep.value = 'idle';
   }
 };
-
 </script>
 
 <template>

@@ -1,5 +1,5 @@
-import { onMounted, onUnmounted, ref, computed, watch } from 'vue';
 import type { Address } from 'viem';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { loadExistingPasskey } from '../utils/sso/passkeys';
 import { usePrividium } from './usePrividium';
@@ -29,6 +29,6 @@ export function useSsoAccount() {
 
   return {
     account: computed(() => ssoAccount.value),
-    refresh,
+    refresh
   };
 }

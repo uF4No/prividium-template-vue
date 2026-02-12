@@ -5,38 +5,38 @@ import { resolveContractsConfigPath } from './tools/contracts-config';
 import { syncEnvFromContractsConfig } from './tools/env-sync';
 
 async function main() {
-    intro('Refreshing env from contracts config...');
+  intro('Refreshing env from contracts config...');
 
-    const rootPath = path.join(import.meta.dirname, '..', '..');
-    const setupPath = path.join(rootPath, 'setup');
-    const webAppPath = path.join(rootPath, 'web-app');
-    const backendPath = path.join(rootPath, 'backend');
-    const setupEnvPath = path.join(setupPath, '.env');
+  const rootPath = path.join(import.meta.dirname, '..', '..');
+  const setupPath = path.join(rootPath, 'setup');
+  const webAppPath = path.join(rootPath, 'web-app');
+  const backendPath = path.join(rootPath, 'backend');
+  const setupEnvPath = path.join(setupPath, '.env');
 
-    assertDotEnv(setupPath);
-    assertDotEnv(webAppPath);
-    assertDotEnv(backendPath);
+  assertDotEnv(setupPath);
+  assertDotEnv(webAppPath);
+  assertDotEnv(backendPath);
 
-    const contractsConfigPath = resolveContractsConfigPath(
-        rootPath,
-        extractConfigOptional(setupEnvPath, 'CONTRACTS_CONFIG_PATH'),
-        setupPath
-    );
+  const contractsConfigPath = resolveContractsConfigPath(
+    rootPath,
+    extractConfigOptional(setupEnvPath, 'CONTRACTS_CONFIG_PATH'),
+    setupPath
+  );
 
-    syncEnvFromContractsConfig({
-        rootPath,
-        setupEnvPath,
-        setupPath,
-        backendPath,
-        webAppPath,
-        contractsConfigPath
-    });
+  syncEnvFromContractsConfig({
+    rootPath,
+    setupEnvPath,
+    setupPath,
+    backendPath,
+    webAppPath,
+    contractsConfigPath
+  });
 
-    outro('Env refreshed from contracts config.');
+  outro('Env refreshed from contracts config.');
 }
 
 main().catch((e) => {
-    console.error('\n❌ Env refresh failed:');
-    console.error(e);
-    process.exit(1);
+  console.error('\n❌ Env refresh failed:');
+  console.error(e);
+  process.exit(1);
 });

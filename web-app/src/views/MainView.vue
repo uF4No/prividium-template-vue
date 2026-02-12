@@ -147,12 +147,12 @@
 </template>
 
 <script setup lang="ts">
+import { useRpcClient } from '@/composables/useRpcClient';
+import type { Address, PublicClient } from 'viem';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { type PublicClient, type Address } from 'viem';
-import { useRpcClient } from '@/composables/useRpcClient';
-import { usePrividium } from '../composables/usePrividium';
 import BaseIcon from '../components/BaseIcon.vue';
+import { usePrividium } from '../composables/usePrividium';
 import { useSsoAccount } from '../composables/useSsoAccount';
 
 import { useCounterContract } from '../composables/useCounterContract';
@@ -182,7 +182,9 @@ const copyContractAddress = () => {
   if (currentContractAddress.value) {
     void navigator.clipboard.writeText(currentContractAddress.value);
     copied.value = true;
-    setTimeout(() => (copied.value = false), 2000);
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
   }
 };
 
@@ -211,7 +213,7 @@ const counterContract = computed(() => {
   return useCounterContract(
     currentContractAddress.value,
     rpcClient.value as PublicClient,
-    enableWalletToken,
+    enableWalletToken
   );
 });
 
@@ -230,7 +232,7 @@ const initializeContract = async () => {
 
 // Update contract address
 const updateContractAddress = () => {
-  if (contractAddressInput.value && contractAddressInput.value.startsWith('0x')) {
+  if (contractAddressInput.value?.startsWith('0x')) {
     currentContractAddress.value = contractAddressInput.value as Address;
     void initializeContract();
   } else {
@@ -285,7 +287,9 @@ const incrementCounter = async () => {
   } catch (error) {
     console.error('Failed to increment counter:', error);
     errorMessage.value = error instanceof Error ? error.message : 'Failed to increment counter';
-    const pendingTx = transactions.value.find(t => t.status === 'pending' && t.function === 'inc()');
+    const pendingTx = transactions.value.find(
+      (t) => t.status === 'pending' && t.function === 'inc()'
+    );
     if (pendingTx) updateTransaction(pendingTx.id, 'failed', 'Error');
   } finally {
     isLoading.value = false;
@@ -308,7 +312,9 @@ const incrementCounterBy = async () => {
   } catch (error) {
     console.error('Failed to increment counter by amount:', error);
     errorMessage.value = error instanceof Error ? error.message : 'Failed to increment counter';
-    const pendingTx = transactions.value.find(t => t.status === 'pending' && t.function.startsWith('incBy'));
+    const pendingTx = transactions.value.find(
+      (t) => t.status === 'pending' && t.function.startsWith('incBy')
+    );
     if (pendingTx) updateTransaction(pendingTx.id, 'failed', 'Error');
   } finally {
     isLoading.value = false;
@@ -334,7 +340,7 @@ const addTransaction = (
 };
 
 const updateTransaction = (id: string, status: 'success' | 'failed', hash: string) => {
-  const tx = transactions.value.find(t => t.id === id);
+  const tx = transactions.value.find((t) => t.id === id);
   if (tx) {
     tx.status = status;
     tx.hash = hash;
@@ -362,5 +368,4 @@ const logout = () => {
     console.error('Logout error:', error);
   }
 };
-
 </script>

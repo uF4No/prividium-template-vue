@@ -1,17 +1,21 @@
-import { StatusCodes } from "http-status-codes";
-import type { z } from "zod";
+import { StatusCodes } from 'http-status-codes';
+import type { z } from 'zod';
 
-import { ServiceResponseSchema } from "./serviceResponse";
+import { ServiceResponseSchema } from './serviceResponse';
 
-export function createApiResponse(schema: z.ZodTypeAny, description: string, statusCode = StatusCodes.OK) {
+export function createApiResponse(
+  schema: z.ZodTypeAny,
+  description: string,
+  statusCode = StatusCodes.OK
+) {
   return {
     [statusCode]: {
       description,
       content: {
-        "application/json": {
-          schema: ServiceResponseSchema(schema),
-        },
-      },
-    },
+        'application/json': {
+          schema: ServiceResponseSchema(schema)
+        }
+      }
+    }
   };
 }

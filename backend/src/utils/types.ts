@@ -1,4 +1,4 @@
-import { Address, Hex } from "viem";
+import type { Address, Hex } from 'viem';
 
 export interface Metadata {
   action: string;
@@ -47,15 +47,15 @@ export interface FinalizeAttemptSuccess {
 }
 
 export type FailureReasons =
-  | "tx_not_found"
-  | "withdrawal_not_ready"
-  | "proof_not_ready"
-  | "error"
-  | "no_message"
-  | "l1_pending"
-  | "tx_failed"
-  | "no_log";
-export type SuccessReasons = "no_logs" | "no_interop_logs" | "already_finalized" | "finalized";
+  | 'tx_not_found'
+  | 'withdrawal_not_ready'
+  | 'proof_not_ready'
+  | 'error'
+  | 'no_message'
+  | 'l1_pending'
+  | 'tx_failed'
+  | 'no_log';
+export type SuccessReasons = 'no_logs' | 'no_interop_logs' | 'already_finalized' | 'finalized';
 
 type GetParamsSuccess = {
   ok: true;

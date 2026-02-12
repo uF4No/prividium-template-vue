@@ -1,25 +1,25 @@
-import type { Address } from "viem";
+import type { Address } from 'viem';
 
-import { client } from "../client";
-import { SSO_CONTRACTS } from "../constants";
-import { env } from "../envConfig";
-import { ensureBeaconDeployed } from "./beacon";
+import { client } from '../client';
+import { SSO_CONTRACTS } from '../constants';
+import { env } from '../envConfig';
+import { ensureBeaconDeployed } from './beacon';
 
 let runtimeFactoryAddress: Address | null = null;
 
 const MSA_FACTORY_READ_ABI = [
   {
-    type: "function",
-    name: "BEACON",
+    type: 'function',
+    name: 'BEACON',
     inputs: [],
-    outputs: [{ name: "", type: "address" }],
-    stateMutability: "view",
-  },
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view'
+  }
 ] as const;
 
 async function hasCode(address: Address): Promise<boolean> {
   const code = await client.l2.getBytecode({ address });
-  return !!code && code !== "0x";
+  return !!code && code !== '0x';
 }
 
 export function getFactoryAddress(): Address {
@@ -35,13 +35,13 @@ export async function ensureFactoryDeployed(): Promise<Address> {
       const beaconFromFactory = (await client.l2.readContract({
         address: configured,
         abi: MSA_FACTORY_READ_ABI,
-        functionName: "BEACON",
+        functionName: 'BEACON'
       })) as Address;
       console.log(`✅ Factory beacon at ${beaconFromFactory}`);
       const beaconHasCode = await hasCode(beaconFromFactory);
       if (!beaconHasCode) {
         throw new Error(
-          `Factory beacon has no code at ${beaconFromFactory}. Deploy/point to a valid beacon or set SSO_BEACON_CONTRACT and redeploy the factory.`,
+          `Factory beacon has no code at ${beaconFromFactory}. Deploy/point to a valid beacon or set SSO_BEACON_CONTRACT and redeploy the factory.`
         );
       }
       console.log(`✅ Using configured factory at ${configured}`);
@@ -58,13 +58,13 @@ export async function ensureFactoryDeployed(): Promise<Address> {
     const beaconFromFactory = (await client.l2.readContract({
       address: defaultFactory,
       abi: MSA_FACTORY_READ_ABI,
-      functionName: "BEACON",
+      functionName: 'BEACON'
     })) as Address;
     console.log(`✅ Factory beacon at ${beaconFromFactory}`);
     const beaconHasCode = await hasCode(beaconFromFactory);
     if (!beaconHasCode) {
       throw new Error(
-        `Factory beacon has no code at ${beaconFromFactory}. Deploy/point to a valid beacon or set SSO_BEACON_CONTRACT and redeploy the factory.`,
+        `Factory beacon has no code at ${beaconFromFactory}. Deploy/point to a valid beacon or set SSO_BEACON_CONTRACT and redeploy the factory.`
       );
     }
     console.log(`✅ Using default factory at ${defaultFactory}`);
@@ -73,7 +73,5 @@ export async function ensureFactoryDeployed(): Promise<Address> {
   }
 
   await ensureBeaconDeployed();
-  throw new Error(
-    "SSO factory contract not found. Run setup-permissions to deploy SSO contracts.",
-  );
+  throw new Error('SSO factory contract not found. Run setup-permissions to deploy SSO contracts.');
 }

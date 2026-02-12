@@ -1,10 +1,10 @@
 import { metaMask } from '@wagmi/connectors';
-import { createConfig, http } from '@wagmi/core';
+import { http, createConfig } from '@wagmi/core';
 import { defineChain } from 'viem';
 import { zksync } from 'viem/chains';
 
 export const prividiumChain = defineChain({
-  id: parseInt(import.meta.env.VITE_PRIVIDIUM_CHAIN_ID),
+  id: Number.parseInt(import.meta.env.VITE_PRIVIDIUM_CHAIN_ID),
   name: import.meta.env.VITE_PRIVIDIUM_CHAIN_NAME,
   nativeCurrency: {
     name: import.meta.env.VITE_PRIVIDIUM_NATIVE_CURRENCY_SYMBOL,
