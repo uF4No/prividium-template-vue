@@ -5,9 +5,14 @@
     "type": "module",
     "scripts": {
         "dev": "pnpm --filter web-app dev",
+        "dev:web-app": "pnpm --filter web-app dev",
+        "dev:backend": "pnpm --filter sso-interop-backend dev",
+        "setup-app": "pnpm --filter prividium-setup setup-app",
+        "setup:permissions": "pnpm -C setup run setup:permissions",
+        "setup": "pnpm -C setup run setup",
         "build": "pnpm -r build",
         "test": "pnpm -r test",
-        "setup-env": "cp web-app/.env.example web-app/.env && cp contracts/.env.example contracts/.env",
+        "setup-env": "cp web-app/.env.example web-app/.env && cp contracts/.env.example contracts/.env && cp backend/.env.example backend/.env",
         "lint": "biome lint .",
         "format": "biome format --write .",
         "check": "biome check --write ."

@@ -2,6 +2,9 @@
 
 Foundry-based smart contract development environment for ZKsync Prividium.
 
+**IMPORTANT**: There's no need to use foundry-zksync or the `--zksync` flag, as ZKsync chains are fully EVM equivalent now.
+
+
 ## Overview
 
 This package contains the smart contracts for the Prividium Template. It uses **Foundry ZKsync** for compiling, testing, and deploying contracts to ZKsync-based networks.
@@ -40,13 +43,16 @@ pnpm --filter contracts test
 
 ### 4. Deploy
 
-To deploy to ZKsync Prividium, you can use `forge create`.
+To deploy to ZKsync Prividium, you can use `forge create`. In this repo, the
+recommended path is to use the `setup` package, which deploys contracts,
+registers permissions, and writes addresses to the canonical config:
+
+- `config/contracts.json`
 
 ```bash
 forge create src/Counter.sol:Counter --rpc-url http://127.0.0.1:24101/rpc --private-key YOUR_PRIVATE_KEY
 ```
 
-**IMPORTANT**: There's no need to use foundry-zksync or the `--zksync` flag, as ZKsync chains are fully EVM equivalent now.
 
 ## Structure
 

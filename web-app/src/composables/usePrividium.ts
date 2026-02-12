@@ -1,12 +1,18 @@
 import { createPrividiumChain, type PrividiumChain, type UserProfile } from 'prividium';
 import { computed, ref } from 'vue';
 
+const stripApiSuffix = (url?: string) => {
+  const base = url?.replace(/\/$/, '');
+  if (!base) return undefined;
+  return base.endsWith('/api') ? base.slice(0, -4) : base;
+};
+
 const prividiumSdkChain = {
-  id: parseInt(import.meta.env.VITE_CHAIN_ID),
-  name: import.meta.env.VITE_CHAIN_NAME,
+  id: parseInt(import.meta.env.VITE_PRIVIDIUM_CHAIN_ID),
+  name: import.meta.env.VITE_PRIVIDIUM_CHAIN_NAME,
   nativeCurrency: {
-    name: import.meta.env.VITE_NATIVE_CURRENCY_SYMBOL,
-    symbol: import.meta.env.VITE_NATIVE_CURRENCY_SYMBOL,
+    name: import.meta.env.VITE_PRIVIDIUM_NATIVE_CURRENCY_SYMBOL,
+    symbol: import.meta.env.VITE_PRIVIDIUM_NATIVE_CURRENCY_SYMBOL,
     decimals: 18
   },
   blockExplorers: {
@@ -30,9 +36,9 @@ function initializePrividium(): PrividiumChain {
       clientId: import.meta.env.VITE_CLIENT_ID,
       chain: prividiumSdkChain,
       rpcUrl: import.meta.env.VITE_PRIVIDIUM_RPC_URL,
-      authBaseUrl: import.meta.env.VITE_AUTH_BASE_URL,
+      authBaseUrl: import.meta.env.VITE_PRIVIDIUM_AUTH_BASE_URL,
       redirectUrl: window.location.origin + '/auth-callback.html',
-      permissionsApiBaseUrl: import.meta.env.VITE_PRIVIDIUM_API_URL,
+      permissionsApiBaseUrl: stripApiSuffix(import.meta.env.VITE_PRIVIDIUM_API_URL) ?? '',
       onAuthExpiry: () => {
         console.log('Authentication expired');
         isAuthenticated.value = false;
@@ -52,11 +58,63 @@ function initializePrividium(): PrividiumChain {
 async function loadUserProfile() {
   const prividium = initializePrividium();
   try {
-    userProfile.value = await prividium.fetchUser();
+    const sdkProfile = await prividium.fetchUser();
+    console.debug('[prividium] fetchUser result', sdkProfile);
+    const sdkUserId = (sdkProfile as any)?.userId ?? (sdkProfile as any)?.id ?? null;
+    if (sdkUserId) {
+      userProfile.value = {
+        ...(sdkProfile as UserProfile),
+        userId: sdkUserId
+      };
+      return;
+    }
+    console.debug('[prividium] fetchUser missing id, falling back to /profiles/me');
   } catch (error) {
-    console.error('Failed to fetch user profile:', error);
-    userProfile.value = null;
+    console.error('Failed to fetch user profile via SDK:', error);
   }
+
+  const headers = prividium.getAuthHeaders();
+  if (!headers) {
+    userProfile.value = null;
+    return;
+  }
+
+  const apiBaseUrl = import.meta.env.VITE_PRIVIDIUM_API_URL?.replace(/\/$/, '');
+  const candidates = apiBaseUrl ? [`${apiBaseUrl}/profiles/me`] : [];
+
+  for (const url of candidates ?? []) {
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers
+        }
+      });
+      if (!response.ok) {
+        continue;
+      }
+      const data = await response.json();
+      console.debug('[prividium] /profiles/me response', data);
+      const walletAddresses =
+        data.walletAddresses ??
+        (Array.isArray(data.wallets) ? data.wallets.map((w: any) => w.walletAddress) : []);
+      const userId = data.userId ?? data.id ?? data.user?.id ?? data.profileId ?? null;
+      userProfile.value = {
+        userId,
+        createdAt: new Date(data.createdAt),
+        displayName: data.displayName ?? null,
+        updatedAt: new Date(data.updatedAt),
+        roles: data.roles ?? [],
+        walletAddresses
+      };
+      return;
+    } catch (fallbackError) {
+      console.warn('Fallback profile fetch failed:', fallbackError);
+    }
+  }
+
+  userProfile.value = null;
 }
 
 export function usePrividium() {
@@ -74,9 +132,7 @@ export function usePrividium() {
     authError.value = null;
 
     try {
-      await prividium.authorize({
-        scopes: ['wallet:required', 'network:required']
-      });
+      await prividium.authorize();
       isAuthenticated.value = true;
       await loadUserProfile();
 
@@ -100,6 +156,11 @@ export function usePrividium() {
 
   function getAuthHeaders() {
     return prividium.getAuthHeaders();
+  }
+
+  async function refreshUserProfile() {
+    await loadUserProfile();
+    return userProfile.value;
   }
 
   function getTransport() {
@@ -144,6 +205,7 @@ export function usePrividium() {
     authenticate,
     signOut,
     getAuthHeaders,
+    refreshUserProfile,
     getTransport,
     getChain,
     enableWalletToken,

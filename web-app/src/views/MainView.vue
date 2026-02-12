@@ -96,7 +96,7 @@
           
           <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
             <span class="text-sm font-medium text-slate-600">Wallet Link</span>
-            <span class="text-xs font-mono text-slate-500" v-if="wallet.isConnected.value">0x...{{ wallet.address.value?.slice(-4) }}</span>
+            <span class="text-xs font-mono text-slate-500" v-if="ssoAccount">0x...{{ ssoAccount?.slice(-4) }}</span>
             <span class="text-xs font-bold text-slate-400" v-else>Not Linked</span>
           </div>
         </div>
@@ -147,14 +147,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { type PublicClient, type Address } from 'viem';
 import { useRpcClient } from '@/composables/useRpcClient';
 import { usePrividium } from '../composables/usePrividium';
-import { useWallet } from '../composables/useWallet';
-import { useTransactionAllowance } from '../composables/useTransactionAllowance';
 import BaseIcon from '../components/BaseIcon.vue';
+import { useSsoAccount } from '../composables/useSsoAccount';
 
 import { useCounterContract } from '../composables/useCounterContract';
 
@@ -163,11 +162,12 @@ const {
   isAuthenticated,
   userName,
   userEmail,
-  signOut: prividiumSignOut
+  signOut: prividiumSignOut,
+  enableWalletToken
 } = usePrividium();
 
-// Wallet integration
-const wallet = useWallet();
+// SSO account
+const { account: ssoAccount } = useSsoAccount();
 
 // Contract connection data
 const counterValue = ref('');
@@ -208,7 +208,11 @@ const errorMessage = ref('');
 // Initialize Counter Hook
 const counterContract = computed(() => {
   if (!rpcClient.value || !currentContractAddress.value) return null;
-  return useCounterContract(currentContractAddress.value, rpcClient.value as PublicClient);
+  return useCounterContract(
+    currentContractAddress.value,
+    rpcClient.value as PublicClient,
+    enableWalletToken,
+  );
 });
 
 // Initialize contract
@@ -270,10 +274,6 @@ const getCounterValue = async () => {
 const incrementCounter = async () => {
   try {
     if (!counterContract.value) return;
-    if (!(await wallet.ensureWalletReady())) {
-      errorMessage.value = 'Please switch to the correct network to continue.';
-      return;
-    }
 
     isLoading.value = true;
     const txId = addTransaction('inc()', 'pending', 'Waiting for confirmation...', '');
@@ -296,10 +296,6 @@ const incrementCounterBy = async () => {
   try {
     if (!counterContract.value) return;
     const amount = BigInt(incrementAmount.value);
-    if (!(await wallet.ensureWalletReady())) {
-      errorMessage.value = 'Please switch to the correct network to continue.';
-      return;
-    }
 
     isLoading.value = true;
     const txId = addTransaction(`incBy(${amount})`, 'pending', 'Waiting...', '');
@@ -367,7 +363,4 @@ const logout = () => {
   }
 };
 
-onUnmounted(() => {
-  wallet.cleanup();
-});
 </script>

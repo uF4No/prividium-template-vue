@@ -1,4 +1,5 @@
 packages:
   - 'web-app'
   - 'contracts'
-  - 'setup-permissions'
+  - 'setup'
+  - 'backend'
