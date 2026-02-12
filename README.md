@@ -130,7 +130,7 @@ Update the Permissions API `.env` file (or pass this values via Dockerfile). The
 
 # SSO implementation contract address
 DISPATCHER_SSO_IMPLEMENTATIONS=0x998abeb3e57409262ae5b751f60747921b33613e
-# Calculated wih cast keccak $(cast code SMART_ACCOUNT_ADDRESS --rpc-url http://localhost:5050)
+# Calculated with cast keccak $(cast code SMART_ACCOUNT_ADDRESS --rpc-url http://localhost:5050)
 DISPATCHER_SSO_BYTECODE_HASHES=0x77a9210e5f94158c7e8f7e84e9601f427e8c1d5f09dfd434afd16314456b0a0f
 ```
 
@@ -162,7 +162,7 @@ The backend service also enables interop transactions (optional and not used in 
 
 ### 6. Start Web app
 
-The web app (in `./web-app`) is a Vue.js application that allows users to create Passkeys and deploy SSO smart contract accounts. It requires multiple envirement variales like the Prividium endpoints (RPC, auth, api), and the Counter contract address. Configure them in the `web-app/.env` file.
+The web app (in `./web-app`) is a Vue.js application that allows users to create Passkeys and deploy SSO smart contract accounts. It requires multiple environment variables like the Prividium endpoints (RPC, auth, api), and the Counter contract address. Configure them in the `web-app/.env` file.
 
 <!-- TODO: example env file with just minimal required variables -->
 ```sh
@@ -182,7 +182,7 @@ To start the web app run:
 pnpm dev:web-app
 ```
 
-> ![IMPORTANT]
+> [!IMPORTANT]
 > Start the web app and backend services in separate terminals.
 
 

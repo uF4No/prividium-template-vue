@@ -44,6 +44,7 @@ export const ssoChain = defineChain({
   blockExplorers: {
     default: {
       name: "Explorer",
+      // TODO: update with prividium explorer
       url: "https://explorer.zksync.io/",
     },
   },

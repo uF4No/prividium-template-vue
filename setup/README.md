@@ -153,7 +153,7 @@ In `src/main.ts`, you can add more tasks or logic to iterate through multiple ap
 
 ## Troubleshooting
 
-- **Connectivity**: Ensure the URLs in `web-app/.env` are reachable from this package.
+- **Connectivity**: Ensure the URLs in `setup/.env` are reachable from this package.
 - **Admin Auth**: The setup uses a default admin private key. Ensure this key corresponds to an admin in your Prividium instance.
 - **Foundry**: Contract deployment requires `forge` to be installed and available in your PATH.
 - **ABI Extraction**: Ensure your contracts are compiled (`forge build`) so the ABI is available in the `out/` directory.
