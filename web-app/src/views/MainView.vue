@@ -96,7 +96,7 @@
           
           <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
             <span class="text-sm font-medium text-slate-600">Wallet Link</span>
-            <span class="text-xs font-mono text-slate-500" v-if="wallet.isConnected.value">0x...{{ wallet.address.value?.slice(-4) }}</span>
+            <span class="text-xs font-mono text-slate-500" v-if="ssoAccount">0x...{{ ssoAccount?.slice(-4) }}</span>
             <span class="text-xs font-bold text-slate-400" v-else>Not Linked</span>
           </div>
         </div>
@@ -147,14 +147,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { type PublicClient, type Address } from 'viem';
 import { useRpcClient } from '@/composables/useRpcClient';
-import { usePrividium } from '../composables/usePrividium';
-import { useWallet } from '../composables/useWallet';
-import { useTransactionAllowance } from '../composables/useTransactionAllowance';
+import type { Address, PublicClient } from 'viem';
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import BaseIcon from '../components/BaseIcon.vue';
+import { usePrividium } from '../composables/usePrividium';
+import { useSsoAccount } from '../composables/useSsoAccount';
 
 import { useCounterContract } from '../composables/useCounterContract';
 
@@ -163,11 +162,12 @@ const {
   isAuthenticated,
   userName,
   userEmail,
-  signOut: prividiumSignOut
+  signOut: prividiumSignOut,
+  enableWalletToken
 } = usePrividium();
 
-// Wallet integration
-const wallet = useWallet();
+// SSO account
+const { account: ssoAccount } = useSsoAccount();
 
 // Contract connection data
 const counterValue = ref('');
@@ -182,7 +182,9 @@ const copyContractAddress = () => {
   if (currentContractAddress.value) {
     void navigator.clipboard.writeText(currentContractAddress.value);
     copied.value = true;
-    setTimeout(() => (copied.value = false), 2000);
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
   }
 };
 
@@ -208,7 +210,11 @@ const errorMessage = ref('');
 // Initialize Counter Hook
 const counterContract = computed(() => {
   if (!rpcClient.value || !currentContractAddress.value) return null;
-  return useCounterContract(currentContractAddress.value, rpcClient.value as PublicClient);
+  return useCounterContract(
+    currentContractAddress.value,
+    rpcClient.value as PublicClient,
+    enableWalletToken
+  );
 });
 
 // Initialize contract
@@ -226,7 +232,7 @@ const initializeContract = async () => {
 
 // Update contract address
 const updateContractAddress = () => {
-  if (contractAddressInput.value && contractAddressInput.value.startsWith('0x')) {
+  if (contractAddressInput.value?.startsWith('0x')) {
     currentContractAddress.value = contractAddressInput.value as Address;
     void initializeContract();
   } else {
@@ -270,10 +276,6 @@ const getCounterValue = async () => {
 const incrementCounter = async () => {
   try {
     if (!counterContract.value) return;
-    if (!(await wallet.ensureWalletReady())) {
-      errorMessage.value = 'Please switch to the correct network to continue.';
-      return;
-    }
 
     isLoading.value = true;
     const txId = addTransaction('inc()', 'pending', 'Waiting for confirmation...', '');
@@ -285,7 +287,9 @@ const incrementCounter = async () => {
   } catch (error) {
     console.error('Failed to increment counter:', error);
     errorMessage.value = error instanceof Error ? error.message : 'Failed to increment counter';
-    const pendingTx = transactions.value.find(t => t.status === 'pending' && t.function === 'inc()');
+    const pendingTx = transactions.value.find(
+      (t) => t.status === 'pending' && t.function === 'inc()'
+    );
     if (pendingTx) updateTransaction(pendingTx.id, 'failed', 'Error');
   } finally {
     isLoading.value = false;
@@ -296,10 +300,6 @@ const incrementCounterBy = async () => {
   try {
     if (!counterContract.value) return;
     const amount = BigInt(incrementAmount.value);
-    if (!(await wallet.ensureWalletReady())) {
-      errorMessage.value = 'Please switch to the correct network to continue.';
-      return;
-    }
 
     isLoading.value = true;
     const txId = addTransaction(`incBy(${amount})`, 'pending', 'Waiting...', '');
@@ -312,7 +312,9 @@ const incrementCounterBy = async () => {
   } catch (error) {
     console.error('Failed to increment counter by amount:', error);
     errorMessage.value = error instanceof Error ? error.message : 'Failed to increment counter';
-    const pendingTx = transactions.value.find(t => t.status === 'pending' && t.function.startsWith('incBy'));
+    const pendingTx = transactions.value.find(
+      (t) => t.status === 'pending' && t.function.startsWith('incBy')
+    );
     if (pendingTx) updateTransaction(pendingTx.id, 'failed', 'Error');
   } finally {
     isLoading.value = false;
@@ -338,7 +340,7 @@ const addTransaction = (
 };
 
 const updateTransaction = (id: string, status: 'success' | 'failed', hash: string) => {
-  const tx = transactions.value.find(t => t.id === id);
+  const tx = transactions.value.find((t) => t.id === id);
   if (tx) {
     tx.status = status;
     tx.hash = hash;
@@ -366,8 +368,4 @@ const logout = () => {
     console.error('Logout error:', error);
   }
 };
-
-onUnmounted(() => {
-  wallet.cleanup();
-});
 </script>

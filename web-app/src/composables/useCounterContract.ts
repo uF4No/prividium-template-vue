@@ -1,10 +1,9 @@
-import { type Address, encodeFunctionData, getContract, type PublicClient } from 'viem';
-import { useTransactionAllowance } from './useTransactionAllowance';
-import { useWallet } from './useWallet';
-import { prividiumChain } from '../wagmi';
+import { type Address, type PublicClient, encodeFunctionData, getContract, pad, toHex } from 'viem';
+import { loadExistingPasskey } from '../utils/sso/passkeys';
+import { sendTxWithPasskey } from '../utils/sso/sendTxWithPasskey';
 
 // Counter Contract ABI
-export const counterAbi = [
+const counterAbi = [
   {
     inputs: [],
     name: 'inc',
@@ -40,10 +39,16 @@ export const counterAbi = [
   }
 ] as const;
 
-export function useCounterContract(contractAddress: Address, rpcClient: PublicClient) {
-  const wallet = useWallet();
-  const { enableTransactionAllowance } = useTransactionAllowance();
-  
+export function useCounterContract(
+  contractAddress: Address,
+  rpcClient: PublicClient,
+  enableWalletToken?: (params: {
+    walletAddress: `0x${string}`;
+    contractAddress: `0x${string}`;
+    nonce: number;
+    calldata: `0x${string}`;
+  }) => Promise<{ message: string; activeUntil: string }>
+) {
   const contract = getContract({
     address: contractAddress,
     abi: counterAbi,
@@ -52,140 +57,79 @@ export function useCounterContract(contractAddress: Address, rpcClient: PublicCl
 
   // Read functions
   const getValue = async (): Promise<bigint> => {
-    return await contract.read.x();
+    const { savedAccount } = loadExistingPasskey();
+    if (!savedAccount) {
+      throw new Error('No linked wallet found. Please link a passkey account first.');
+    }
+    return await contract.read.x({ account: savedAccount });
   };
 
   // Internal helper for defensive checks (matching React)
-  const verifyWalletState = async () => {
-    await wallet.ensureWalletReady();
+  const buildGasOptions = () => {
+    const callGasLimit = 500000n;
+    const verificationGasLimit = 2000000n;
+    const maxFeePerGas = 10000000000n;
+    const maxPriorityFeePerGas = 5000000000n;
+    const preVerificationGas = 200000n;
 
-    if (window.ethereum) {
-      const ethereum = window.ethereum as any;
-      
-      // 1. Verify Chain ID
-      const currentChainId = await ethereum.request({ method: 'eth_chainId' });
-      const expectedChainId = `0x${prividiumChain.id.toString(16)}`;
-      if (currentChainId !== expectedChainId) {
-        throw new Error(`Wallet is on wrong network. Current: ${currentChainId}, Required: ${expectedChainId}.`);
-      }
+    const accountGasLimits = pad(toHex((verificationGasLimit << 128n) | callGasLimit), {
+      size: 32
+    });
+    const gasFees = pad(toHex((maxPriorityFeePerGas << 128n) | maxFeePerGas), { size: 32 });
 
-      // 2. Verify Account
-      const accounts = await ethereum.request({ method: 'eth_accounts' });
-      const activeAddress = accounts[0]?.toLowerCase();
-      const expectedAddress = wallet.address.value?.toLowerCase();
-      
-      if (!activeAddress || activeAddress !== expectedAddress) {
-        await ethereum.request({ method: 'eth_requestAccounts' });
-      }
+    return {
+      gasFees,
+      accountGasLimits,
+      callGasLimit,
+      verificationGasLimit,
+      preVerificationGas,
+      maxFeePerGas,
+      maxPriorityFeePerGas
+    };
+  };
+
+  const sendWithPasskey = async (data: `0x${string}`) => {
+    const { savedPasskey, savedAccount } = loadExistingPasskey();
+    if (!savedPasskey || !savedAccount) {
+      throw new Error('No SSO account found. Create and link a passkey first.');
     }
 
-    if (!wallet.walletClient.value) throw new Error('Wallet client not found');
-    if (!wallet.address.value) throw new Error('Wallet address not found');
+    const txData = [
+      {
+        to: contractAddress,
+        value: 0n,
+        data
+      }
+    ];
+
+    const gasOptions = buildGasOptions();
+    return await sendTxWithPasskey(
+      savedAccount,
+      savedPasskey,
+      txData,
+      gasOptions,
+      rpcClient,
+      enableWalletToken
+    );
   };
 
   // Write functions
   const increment = async () => {
-    await verifyWalletState();
-    const walletAddress = wallet.address.value!;
-    const client = wallet.walletClient.value!;
-
     const data = encodeFunctionData({
       abi: counterAbi,
       functionName: 'inc',
       args: []
     });
-
-    // 1. Get Nonce
-    const nonce = await rpcClient.getTransactionCount({
-      address: walletAddress
-    });
-    
-    // 2. Enable Token (The "Permission" Step) - Done BEFORE gas estimation to ensure proxy allows the call
-    await enableTransactionAllowance({
-      walletAddress,
-      contractAddress,
-      nonce: Number(nonce),
-      calldata: data
-    });
-
-    // 3. Pre-fetch Parameters
-    const gas = await rpcClient.estimateGas({
-      account: walletAddress,
-      to: contractAddress,
-      data
-    });
-
-    const gasPrice = await rpcClient.getGasPrice();
-
-    // 4. Final verification of client chain
-    const walletChainId = await client.getChainId();
-    if (walletChainId !== prividiumChain.id) {
-      throw new Error(`Wallet client chain mismatch. Expected ${prividiumChain.id}, got ${walletChainId}`);
-    }
-
-    // 5. Send Transaction
-    const hash = await client.sendTransaction({
-      account: walletAddress,
-      to: contractAddress,
-      data,
-      nonce: Number(nonce),
-      gas,
-      gasPrice
-    });
-    
-    return hash;
+    return await sendWithPasskey(data);
   };
 
   const incrementBy = async (amount: bigint) => {
-    await verifyWalletState();
-    const walletAddress = wallet.address.value!;
-    const client = wallet.walletClient.value!;
-
     const data = encodeFunctionData({
       abi: counterAbi,
       functionName: 'incBy',
       args: [amount]
     });
-
-    // 1. Get Nonce
-    const nonce = await rpcClient.getTransactionCount({
-      address: walletAddress
-    });
-
-    // 2. Enable Token
-    await enableTransactionAllowance({
-      walletAddress,
-      contractAddress,
-      nonce: Number(nonce),
-      calldata: data
-    });
-
-    // 3. Pre-fetch Parameters
-    const gas = await rpcClient.estimateGas({
-      account: walletAddress,
-      to: contractAddress,
-      data
-    });
-
-    const gasPrice = await rpcClient.getGasPrice();
-
-    // 4. Final verification
-    const walletChainId = await client.getChainId();
-    if (walletChainId !== prividiumChain.id) {
-       throw new Error(`Wallet client chain mismatch. Expected ${prividiumChain.id}, got ${walletChainId}`);
-    }
-
-    // 5. Send Transaction
-    const hash = await client.sendTransaction({
-      account: walletAddress,
-      to: contractAddress,
-      data,
-      nonce: Number(nonce),
-      gas,
-      gasPrice
-    });
-    
-    return hash;
+    return await sendWithPasskey(data);
   };
 
   return {

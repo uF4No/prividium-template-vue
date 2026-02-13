@@ -2,26 +2,29 @@
 
 A Vue 3 + TypeScript sample application demonstrating secure smart contract interactions through Prividium Proxy API.
 
-## TODO
+## Current Scope
 
-- [ ] Make title and accent color configurable
-- [ ] Integrate SSO
-- [ ] Update UI to match new design system ZKsync
-- [ ] Add top navbar and footer
+This app includes both:
+
+- OIDC authentication with Prividium
+- Passkey-based SSO smart account setup (create/select + deploy/link)
 
 ## Overview
 
 This sample dApp showcases how to build a secure Web3 application that:
 
 - Authenticates users through OIDC
-- Connects to MetaMask wallets
+- Creates or selects passkeys for SSO account access
+- Deploys SSO smart accounts through the backend
+- Links deployed wallets to the authenticated Prividium user profile
 - Interacts with smart contracts on ZKsync Prividium chain through the Prividium proxy
-- Implements proper transaction signing with EIP-712 support
+- Implements proper transaction signing 
 
 ## Features
 
 - **Secure Authentication**: OAuth 2.0/OpenID Connect integration
-- **Wallet Integration**: MetaMask connection with network switching
+- **SSO Setup Flow**: Passkey creation/selection plus guided two-step account setup UI
+- **Profile Wallet Linking**: New smart account is linked to the user profile by backend `/deploy-account`
 - **Smart Contract Interaction**: Complete CRUD operations on a Counter contract
 - **Transaction Management**: Real-time transaction history and status tracking
 - **Proxy Integration**: All RPC calls routed through authenticated Prividium proxy
@@ -48,39 +51,12 @@ This sample dApp showcases how to build a secure Web3 application that:
 #### Authentication Flow
 
 - **Login**: OIDC OAuth 2.0 with PKCE flow
-- **Callback**: Handles authentication redirect
-- **Protected Routes**: Automatic redirection based on auth state
+- **Setup**: user chooses `Create New Passkey` or `Use Existing`
+- **Deploy & Link**: for new passkeys, web-app calls backend `/deploy-account` with `userId`
+- **Confirmation**: setup card shows deployed address and explicit `Continue to App` action
+- **Protected Routes**: automatic redirection based on auth state
 
-#### Wallet Integration
 
-- **MetaMask Connection**: Automatic wallet detection and connection
-- **Network Switching**: Prompts to switch to correct network
-- **Account Management**: Real-time account and network status
-
-#### Smart Contract Integration
-
-- **Read Operations**: `getGreeting()`, `getContractInfo()`, `owner()`, `updateCount()`
-- **Write Operations**: `setGreeting()`, `updateGreeting()`, `transferOwnership()`
-- **Transaction Signing**: EIP-712 compliant transaction signing
-- **Proxy Communication**: All RPC calls authenticated through Prividium
-
-### Project Structure
-
-```
-src/
-├── main.ts                     # App entry point
-├── App.vue                     # Root component
-├── router/index.ts            # Vue Router with auth guards
-├── views/
-│   ├── LoginView.vue          # Login page
-│   └── MainView.vue           # Main contract interface
-├── composables/
-│   ├── useWallet.ts           # Wallet connection management
-│   ├── useRpcClient.ts        # Authenticated RPC client
-│   └── useGreetingContract.ts # Smart contract interactions
-├── wagmi.ts                   # Wagmi configuration
-└── assets/                    # Styles and assets
-```
 ## Smart Contract Interface
 
 The sample interacts with a Counter contract with the following functions:
@@ -102,11 +78,15 @@ The sample interacts with a Counter contract with the following functions:
 - Secure token storage and automatic refresh
 - ID token passed to Prividium proxy for authorization
 
-### Transaction Security
+### Account Linking Model
 
-- EIP-712 structured data signing
-- MetaMask signature verification
-- Authenticated RPC calls through Prividium proxy
+- For **new passkeys**, the frontend sends `userId`, `originDomain`,
+  `credentialId`, and `credentialPublicKey` to backend `/deploy-account`.
+- The backend deploys the smart account, configures permissions, and links the
+  wallet to the Prividium profile with admin credentials.
+- The frontend does **not** call `/api/user-wallets/associate` for this flow.
+- For **existing passkeys**, the frontend only selects and validates an already
+  linked account.
 
 ### Network Security
 
@@ -131,13 +111,24 @@ pnpm typecheck    # TypeScript type checking only
 
 ## Environment Variables
 
-| Variable                         | Description              | Example                     |
-| -------------------------------- | ------------------------ | --------------------------- |
-| `VITE_COUNTER_CONTRACT_ADDRESS`  | Smart contract address   | `0x123...`                  |
-| `VITE_PROXY_URL`                 | Prividium proxy endpoint | `http://localhost:4041/rpc` |
-| `VITE_CHAIN_ID`                  | Network chain ID         | `324`                       |
-| `VITE_CHAIN_NAME`                | Network display name     | `ZKsync Prividium`          |
-| `VITE_NATIVE_CURRENCY_SYMBOL`    | Native currency symbol   | `ETH`                       |
+> Contract addresses are generated by the setup scripts and written into `web-app/.env`.  
+> Do not edit these manually; use `pnpm -C setup refresh:env` after running setup.
+
+| Variable                              | Description                                          | Example                          |
+| ------------------------------------- | ---------------------------------------------------- | -------------------------------- |
+| `VITE_PRIVIDIUM_API_URL`              | Prividium API base URL (include `/api`)              | `http://localhost:8000/api`     |
+| `VITE_PRIVIDIUM_RPC_URL`              | Prividium RPC URL                                    | `http://localhost:8000/rpc`     |
+| `VITE_PRIVIDIUM_AUTH_BASE_URL`        | Prividium Auth base URL                              | `http://localhost:3001`         |
+| `VITE_PRIVIDIUM_CHAIN_ID`             | Prividium chain ID                                   | `6565`                           |
+| `VITE_PRIVIDIUM_CHAIN_NAME`           | Prividium chain display name                         | `Prividium`                      |
+| `VITE_PRIVIDIUM_NATIVE_CURRENCY_SYMBOL` | Native currency symbol                             | `ETH`                            |
+| `VITE_COUNTER_CONTRACT_ADDRESS`       | Counter contract address                             | `0x123...`                       |
+| `VITE_CLIENT_ID`                      | OAuth client id (created by setup)                   | `abc123`                         |
+| `VITE_BACKEND_URL`                    | Backend service base URL (SSO deploy endpoint)       | `http://localhost:4340`          |
+| `VITE_SSO_WEBAUTHN_VALIDATOR`         | SSO WebAuthn validator                               | `0x...`                          |
+| `VITE_SSO_ENTRYPOINT`                 | SSO EntryPoint                                       | `0x...`                          |
+| `VITE_SSO_CHAIN_ID`                   | SSO chain id (optional override)                     | `6565`                           |
+| `VITE_SSO_CHAIN_NAME`                 | SSO chain name (optional override)                   | `Prividium`                      |
 
 > **Note**: The sample dApp uses the authenticated `/rpc` endpoint for direct contract interaction calls. Network
 > configuration (including personal RPC endpoints) should be done through the **user-panel** application.

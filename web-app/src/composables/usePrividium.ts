@@ -1,12 +1,18 @@
-import { createPrividiumChain, type PrividiumChain, type UserProfile } from 'prividium';
+import { type PrividiumChain, type UserProfile, createPrividiumChain } from 'prividium';
 import { computed, ref } from 'vue';
 
+const stripApiSuffix = (url?: string) => {
+  const base = url?.replace(/\/$/, '');
+  if (!base) return undefined;
+  return base.endsWith('/api') ? base.slice(0, -4) : base;
+};
+
 const prividiumSdkChain = {
-  id: parseInt(import.meta.env.VITE_CHAIN_ID),
-  name: import.meta.env.VITE_CHAIN_NAME,
+  id: Number.parseInt(import.meta.env.VITE_PRIVIDIUM_CHAIN_ID),
+  name: import.meta.env.VITE_PRIVIDIUM_CHAIN_NAME,
   nativeCurrency: {
-    name: import.meta.env.VITE_NATIVE_CURRENCY_SYMBOL,
-    symbol: import.meta.env.VITE_NATIVE_CURRENCY_SYMBOL,
+    name: import.meta.env.VITE_PRIVIDIUM_NATIVE_CURRENCY_SYMBOL,
+    symbol: import.meta.env.VITE_PRIVIDIUM_NATIVE_CURRENCY_SYMBOL,
     decimals: 18
   },
   blockExplorers: {
@@ -19,20 +25,52 @@ const prividiumSdkChain = {
 
 let prividiumInstance: PrividiumChain | null = null;
 
+type AppUserProfile = UserProfile & {
+  userId: string;
+  walletAddresses: string[];
+};
+
 const isAuthenticated = ref(false);
 const isAuthenticating = ref(false);
-const userProfile = ref<UserProfile | null>(null);
+const userProfile = ref<AppUserProfile | null>(null);
 const authError = ref<string | null>(null);
+
+function mapWalletAddresses(wallets: unknown[]): string[] {
+  return wallets
+    .map((wallet) => {
+      if (typeof wallet === 'string') {
+        return wallet;
+      }
+      if (
+        wallet &&
+        typeof wallet === 'object' &&
+        'walletAddress' in wallet &&
+        typeof (wallet as { walletAddress?: unknown }).walletAddress === 'string'
+      ) {
+        return (wallet as { walletAddress: string }).walletAddress;
+      }
+      return null;
+    })
+    .filter((walletAddress): walletAddress is string => walletAddress !== null);
+}
+
+function toAppUserProfile(profile: UserProfile): AppUserProfile {
+  return {
+    ...profile,
+    userId: profile.id,
+    walletAddresses: mapWalletAddresses(profile.wallets)
+  };
+}
 
 function initializePrividium(): PrividiumChain {
   if (!prividiumInstance) {
+    const prividiumApiBaseUrl = stripApiSuffix(import.meta.env.VITE_PRIVIDIUM_API_URL) ?? '';
     prividiumInstance = createPrividiumChain({
       clientId: import.meta.env.VITE_CLIENT_ID,
       chain: prividiumSdkChain,
-      rpcUrl: import.meta.env.VITE_PRIVIDIUM_RPC_URL,
-      authBaseUrl: import.meta.env.VITE_AUTH_BASE_URL,
-      redirectUrl: window.location.origin + '/auth-callback.html',
-      permissionsApiBaseUrl: import.meta.env.VITE_PRIVIDIUM_API_URL,
+      authBaseUrl: import.meta.env.VITE_PRIVIDIUM_AUTH_BASE_URL,
+      redirectUrl: `${window.location.origin}/auth-callback.html`,
+      prividiumApiBaseUrl,
       onAuthExpiry: () => {
         console.log('Authentication expired');
         isAuthenticated.value = false;
@@ -52,11 +90,90 @@ function initializePrividium(): PrividiumChain {
 async function loadUserProfile() {
   const prividium = initializePrividium();
   try {
-    userProfile.value = await prividium.fetchUser();
+    const sdkProfile = await prividium.fetchUser();
+    console.debug('[prividium] fetchUser result', sdkProfile);
+    userProfile.value = toAppUserProfile(sdkProfile);
+    return;
   } catch (error) {
-    console.error('Failed to fetch user profile:', error);
-    userProfile.value = null;
+    console.error('Failed to fetch user profile via SDK:', error);
   }
+
+  const headers = prividium.getAuthHeaders();
+  if (!headers) {
+    userProfile.value = null;
+    return;
+  }
+
+  const apiBaseUrl = import.meta.env.VITE_PRIVIDIUM_API_URL?.replace(/\/$/, '');
+  const candidates = apiBaseUrl ? [`${apiBaseUrl}/profiles/me`] : [];
+
+  for (const url of candidates ?? []) {
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers
+        }
+      });
+      if (!response.ok) {
+        continue;
+      }
+      const data = (await response.json()) as {
+        walletAddresses?: string[];
+        wallets?: Array<{ walletAddress: string }>;
+        userId?: string;
+        id?: string;
+        user?: { id?: string };
+        profileId?: string;
+        createdAt: string;
+        updatedAt: string;
+        displayName?: string;
+        roles?: unknown[];
+      };
+      console.debug('[prividium] /profiles/me response', data);
+      const walletAddresses =
+        data.walletAddresses ??
+        (Array.isArray(data.wallets) ? data.wallets.map((w) => w.walletAddress) : []);
+      const userId = data.userId ?? data.id ?? data.user?.id ?? data.profileId ?? null;
+      if (!userId) {
+        throw new Error('User profile missing id');
+      }
+      const roles = Array.isArray(data.roles)
+        ? data.roles
+            .map((role) => {
+              if (typeof role === 'string') {
+                return { roleName: role };
+              }
+              if (
+                role &&
+                typeof role === 'object' &&
+                'roleName' in role &&
+                typeof (role as { roleName?: unknown }).roleName === 'string'
+              ) {
+                return { roleName: (role as { roleName: string }).roleName };
+              }
+              return null;
+            })
+            .filter((role): role is { roleName: string } => role !== null)
+        : [];
+      userProfile.value = {
+        id: userId,
+        userId,
+        createdAt: new Date(data.createdAt),
+        displayName: data.displayName ?? null,
+        updatedAt: new Date(data.updatedAt),
+        roles,
+        wallets: walletAddresses,
+        walletAddresses
+      };
+      return;
+    } catch (fallbackError) {
+      console.warn('Fallback profile fetch failed:', fallbackError);
+    }
+  }
+
+  userProfile.value = null;
 }
 
 export function usePrividium() {
@@ -74,9 +191,7 @@ export function usePrividium() {
     authError.value = null;
 
     try {
-      await prividium.authorize({
-        scopes: ['wallet:required', 'network:required']
-      });
+      await prividium.authorize();
       isAuthenticated.value = true;
       await loadUserProfile();
 
@@ -102,6 +217,11 @@ export function usePrividium() {
     return prividium.getAuthHeaders();
   }
 
+  async function refreshUserProfile() {
+    await loadUserProfile();
+    return userProfile.value;
+  }
+
   function getTransport() {
     return prividium.transport;
   }
@@ -116,7 +236,12 @@ export function usePrividium() {
     nonce: number;
     calldata: `0x${string}`;
   }) {
-    return prividium.enableWalletToken(params);
+    return prividium.authorizeTransaction({
+      walletAddress: params.walletAddress,
+      toAddress: params.contractAddress,
+      nonce: params.nonce,
+      calldata: params.calldata
+    });
   }
 
   async function addNetworkToWallet() {
@@ -144,6 +269,7 @@ export function usePrividium() {
     authenticate,
     signOut,
     getAuthHeaders,
+    refreshUserProfile,
     getTransport,
     getChain,
     enableWalletToken,

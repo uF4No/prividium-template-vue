@@ -1,14 +1,14 @@
 import { metaMask } from '@wagmi/connectors';
-import { createConfig, http } from '@wagmi/core';
+import { http, createConfig } from '@wagmi/core';
 import { defineChain } from 'viem';
 import { zksync } from 'viem/chains';
 
 export const prividiumChain = defineChain({
-  id: parseInt(import.meta.env.VITE_CHAIN_ID),
-  name: import.meta.env.VITE_CHAIN_NAME,
+  id: Number.parseInt(import.meta.env.VITE_PRIVIDIUM_CHAIN_ID),
+  name: import.meta.env.VITE_PRIVIDIUM_CHAIN_NAME,
   nativeCurrency: {
-    name: import.meta.env.VITE_NATIVE_CURRENCY_SYMBOL,
-    symbol: import.meta.env.VITE_NATIVE_CURRENCY_SYMBOL,
+    name: import.meta.env.VITE_PRIVIDIUM_NATIVE_CURRENCY_SYMBOL,
+    symbol: import.meta.env.VITE_PRIVIDIUM_NATIVE_CURRENCY_SYMBOL,
     decimals: 18
   },
   rpcUrls: {

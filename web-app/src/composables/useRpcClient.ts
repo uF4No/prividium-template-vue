@@ -1,4 +1,4 @@
-import { type Chain, createPublicClient, type Transport } from 'viem';
+import { type Chain, type Transport, createPublicClient } from 'viem';
 import { computed } from 'vue';
 import { usePrividium } from './usePrividium';
 
