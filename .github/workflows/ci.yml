@@ -37,7 +37,7 @@ jobs:
         with:
           version: nightly
       - name: Build
-        run: cd contracts && forge install && forge build
+        run: cd contracts && forge build
 
   build-web-app:
     name: Build Web App

@@ -1,4 +1,4 @@
-import { type Hex } from 'viem';
+import type { Hex } from 'viem';
 import { getPrividiumAuthToken } from '../client';
 import { env } from '../envConfig';
 

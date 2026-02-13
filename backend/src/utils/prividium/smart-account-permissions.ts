@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { toFunctionSelector } from 'viem';
 
-import { type Hex } from 'viem';
+import type { Hex } from 'viem';
 import { getPrividiumAuthToken } from '../client';
 import { env } from '../envConfig';
 

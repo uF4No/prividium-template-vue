@@ -8,9 +8,10 @@ There are five endpoints for the backend server:
    transactions for a given account.
 3. `/new-l1-interop-tx` (POST): adds the given interop transaction to the
    pending transactions list.
-4. `/deploy-account` (POST): deploys a new SSO account for a given passkey and
-   calls the faucet. This endpoint should be modified for mainnet deployments so
-   it does not try to call the faucet.
+4. `/deploy-account` (POST): deploys a new SSO account for a given passkey,
+   funds it through the faucet (testnet/local only), configures Prividium
+   contract permissions, and links the deployed wallet to the target user
+   profile in Prividium (`PUT /api/users/{userId}`).
 5. `/faucet`: (POST): checks the balance of the given account, its entrypoint,
    and its shadow account on the L1. If any of the balances are below the
    `MIN_BALANCE`, it sends some funds to them. This endpoint should be removed
@@ -19,10 +20,40 @@ There are five endpoints for the backend server:
 The server also runs a continuous process that tracks pending L2 <-> L1
 transactions and finalizes them once they are fully executed.
 
+## `/deploy-account` request/response
+
+Request body:
+
+```json
+{
+  "userId": "Pwdt2gLpHyMaiwjUYxIQ4",
+  "originDomain": "http://localhost:3002",
+  "credentialId": "base64url-or-0x-credential-id",
+  "credentialPublicKey": [165, 1, 2, 3]
+}
+```
+
+Behavior:
+
+1. Deploys account from passkey payload.
+2. Funds account/entrypoint via faucet logic (local/testnet flow).
+3. Enables contract permissions in Prividium for the deployed smart account.
+4. Fetches the user profile and appends the wallet address (`GET/PUT /api/users/{userId}`).
+
+Success response includes:
+
+- `responseObject.accountAddress`
+- `responseObject.permissionsConfigured`
+- `responseObject.walletAssociated`
+- `responseObject.walletAddresses` (updated list)
+
+If deploy succeeds but permissions/linking fails, the endpoint returns `500` with
+`responseObject` populated so the client can display a precise setup error.
+
 ## Environment Variables
 
 Required:
-- `EXECUTOR_PRIVATE_KEY`: Private key used to deploy accounts, finalize interop txs, and fund testnet accounts.
+- `EXECUTOR_PRIVATE_KEY`: Private key used to deploy accounts, finalize interop txs, fund testnet accounts, and authenticate against Prividium API for profile wallet linking.
 - `L1_RPC_URL`: L1 RPC endpoint (typically a local Anvil node).
 - `PRIVIDIUM_RPC_URL`: Prividium L2 RPC endpoint (e.g. `http://localhost:8000/rpc`).
 - `PRIVIDIUM_CHAIN_ID`: Prividium L2 chain id.

@@ -10,6 +10,7 @@
     "setup-app": "pnpm --filter prividium-setup setup-app",
     "setup:permissions": "pnpm -C setup run setup:permissions",
     "setup": "pnpm -C setup run setup",
+    "ci:local": "pnpm check && pnpm -C contracts build && pnpm --filter web-app build",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "setup-env": "cp web-app/.env.example web-app/.env && cp contracts/.env.example contracts/.env && cp backend/.env.example backend/.env",

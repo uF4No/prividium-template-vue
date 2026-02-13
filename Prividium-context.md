@@ -16,12 +16,13 @@ These chains differ significantly from standard EVM chains due to strict privacy
     authentication.
     - **Always** checks if the user is authenticated before attempting network operations.
     - **Always** use the [`prividium` SDK](https://www.npmjs.com/package/prividium) for frontend chain initialization.
-2.  **Two RPC Architectures**:
-    - **Server/Scripts**: Use `Authorization: Bearer <token>` headers with the standard endpoint.
-    - **Browser/Wallets**: Use a unique, per-user URL `.../rpc/wallet/<token>` because browser extensions cannot inject
-      access headers.
-3.  **Transaction Flow**: You CANNOT just `wallet.sendTransaction`. You must **pre-authorize** every single transaction via
-    the API (`prividium.authorizeTransaction`) before the wallet prompts the user.
+2.  **RPC Architecture Depends on Signer Type**:
+    - **Server/Scripts + Smart Contract Accounts (passkeys/4337)**: Use the standard `.../rpc` endpoint with
+      `Authorization: Bearer <token>` headers.
+    - **Browser EOA Wallets (MetaMask, etc.)**: Use a unique, per-user URL `.../rpc/wallet/<token>` because browser
+      extensions cannot inject access headers.
+3.  **Transaction Flow**: You CANNOT directly send transactions/user-operations. You must **pre-authorize** each operation
+    via the API (`prividium.authorizeTransaction`) before submitting it (wallet prompt for EOAs, passkey flow for smart accounts).
 4.  **Contracts are Private by Default**: After deployment, all contract methods are **Forbidden**. They must be explicitly allowed in the Admin Panel.
 
 ---
@@ -79,7 +80,7 @@ const provider = new ethers.JsonRpcProvider(fetchRequest);
 
 ## 💻 Web Application Logic (React/Next.js)
 
-When generating frontend code, strictly follow this pattern to handle the "Two RPCs" architecture.
+When generating frontend code, strictly follow this signer-aware RPC pattern.
 
 ### 1. Configuration
 Use the `prividium` SDK.
@@ -128,6 +129,47 @@ const hash = await walletClient.sendTransaction({
 });
 ```
 
+### 4. Writing Data (Smart Contract Accounts / Passkeys)
+For passkey-based smart accounts, do **not** use wallet RPC URLs (`/rpc/wallet/<token>`). Use the authenticated transport
+(`prividium.transport`) and send requests to standard `/rpc` with auth headers.
+
+1.  **Get linked SSO account** (example: from `useSsoAccount` / stored passkey account).
+2.  **Use authenticated client** created from `getTransport()` / `prividium.transport`.
+3.  **Fetch nonce and authorize** the primary call via `authorizeTransaction` (`enableWalletToken` wrapper).
+4.  **Submit UserOperation** through authenticated RPC (`eth_sendUserOperation`) and poll receipt.
+
+**Code Template:**
+```typescript
+// Authenticated client (hits /rpc with Authorization header)
+const rpcClient = createPublicClient({
+  chain: getChain(),
+  transport: getTransport()
+});
+
+// Optional but recommended: pre-authorize call for Prividium policy checks
+await enableWalletToken({
+  walletAddress: ssoAccountAddress,
+  contractAddress: call.to,
+  nonce,
+  calldata: call.data
+});
+
+// Submit 4337 operation through authenticated RPC client
+const userOpHash = await rpcClient.request({
+  method: 'eth_sendUserOperation',
+  params: [userOp, entryPointAddress]
+});
+
+const receipt = await rpcClient.request({
+  method: 'eth_getUserOperationReceipt',
+  params: [userOpHash]
+});
+```
+
+**Important**:
+- Do not call `getWalletRpcUrl()` / `addNetworkToWallet()` for smart contract accounts.
+- Smart account flows still require authenticated RPC access; no unauthenticated reads/writes.
+
 ---
 
 ## 🔗 Tenants & Integrations
@@ -163,6 +205,7 @@ The Block Explorer API requires the same SIWE Bearer token as the RPC.
 | :--- | :--- | :--- |
 | **401 Unauthorized (Read)** | Using `window.ethereum` or raw RPC URL without headers. | Use `prividium.transport` or inject `Authorization: Bearer` header. |
 | **401 Unauthorized (Write)** | Transaction not authorized. | Call `prividium.authorizeTransaction()` before sending. |
+| **Smart-account tx fails with 401** | Sent UserOperation through wallet RPC path or unauthenticated client. | Send `eth_sendUserOperation` via authenticated `/rpc` transport (`prividium.transport`). |
 | **"Method not allowed"** | Contract permissions not set. | Go to Admin Panel -> Contracts and enable the function. |
 | **"Wallet on wrong network"** | Wallet not using per-user RPC. | Call `prividium.addNetworkToWallet()`. |
 

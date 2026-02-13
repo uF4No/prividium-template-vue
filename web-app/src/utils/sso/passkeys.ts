@@ -1,9 +1,7 @@
 import { startAuthentication } from '@simplewebauthn/browser';
 import { type Address, type Hex, type PublicClient, hexToBytes, toHex } from 'viem';
 import { generatePasskeyAuthenticationOptions } from 'zksync-sso-stable/client/passkey';
-import {
-  registerNewPasskey
-} from 'zksync-sso-stable/client/passkey';
+import { registerNewPasskey } from 'zksync-sso-stable/client/passkey';
 import { getPasskeySignatureFromPublicKeyBytes } from 'zksync-sso-stable/utils';
 
 import { RP_ID, STORAGE_KEY_ACCOUNT, STORAGE_KEY_PASSKEY, ssoContracts } from './constants';
