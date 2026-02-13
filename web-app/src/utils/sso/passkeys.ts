@@ -2,9 +2,9 @@ import { startAuthentication } from '@simplewebauthn/browser';
 import { type Address, type Hex, type PublicClient, hexToBytes, toHex } from 'viem';
 import { generatePasskeyAuthenticationOptions } from 'zksync-sso-stable/client/passkey';
 import {
-  createWebAuthnCredential,
-  getPasskeySignatureFromPublicKeyBytes
-} from 'zksync-sso/client/passkey';
+  registerNewPasskey
+} from 'zksync-sso-stable/client/passkey';
+import { getPasskeySignatureFromPublicKeyBytes } from 'zksync-sso-stable/utils';
 
 import { RP_ID, STORAGE_KEY_ACCOUNT, STORAGE_KEY_PASSKEY, ssoContracts } from './constants';
 import type { PasskeyCredential } from './types';
@@ -35,21 +35,18 @@ export async function createNewPasskey(userName: string) {
 
   const passkeyName = userName.toLowerCase().replace(/\s+/g, '');
 
-  const result = await createWebAuthnCredential({
-    rpId: RP_ID,
+  const result = await registerNewPasskey({
+    rpID: RP_ID,
     rpName: 'SSO Interop Portal',
-    name: passkeyName,
-    displayName: userName,
-    authenticatorAttachment: 'platform'
+    userName: passkeyName,
+    userDisplayName: userName
   });
-
-  // Reconstruct COSE key from X, Y coordinates to send to backend
-  const coseKey = getPasskeySignatureFromPublicKeyBytes([result.publicKey.x, result.publicKey.y]);
 
   // Store credentials
   const passkeyCredentials = {
-    credentialId: result.credentialId as Hex,
-    credentialPublicKey: Array.from(coseKey) as number[], // This is now correct COSE bytes
+    // Keep base64url id; backend supports non-hex credential IDs.
+    credentialId: result.credentialId,
+    credentialPublicKey: Array.from(result.credentialPublicKey) as number[],
     userName: passkeyName,
     userDisplayName: userName
   };

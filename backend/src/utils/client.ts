@@ -145,6 +145,10 @@ async function getAuthToken(): Promise<string> {
   return authInFlight;
 }
 
+export async function getPrividiumAuthToken(): Promise<string> {
+  return getAuthToken();
+}
+
 // Custom Fetch Wrapper for Viem
 const authenticatedFetch: typeof fetch = async (url, init) => {
   const token = await getAuthToken();

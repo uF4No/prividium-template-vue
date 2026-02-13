@@ -5,12 +5,15 @@ import { dirname, join, resolve } from 'node:path';
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature } from 'sso-legacy/utils';
 import { type Hex, hexToBytes, keccak256, toHex } from 'viem';
 
+import { configureSmartAccountPermissions } from '@/utils/prividium/smart-account-permissions';
+import { associateWalletWithUser } from '@/utils/prividium/user-wallet-association';
 import { client, l2Wallet } from '../client';
 import { SSO_CONTRACTS } from '../constants';
 import { ensureFactoryDeployed, getFactoryAddress } from './factory';
 import { sendFaucetFunds } from './faucet';
 
 export async function deploySmartAccount(
+  userId: string,
   originDomain: string,
   credentialId: Hex,
   credentialPublicKey: number[]
@@ -32,7 +35,45 @@ export async function deploySmartAccount(
 
     await sendFaucetFunds(deployedAddress);
 
-    return deployedAddress;
+    let permissionsConfigured = false;
+    let permissionsError: string | undefined;
+    try {
+      await configureSmartAccountPermissions(deployedAddress);
+      permissionsConfigured = true;
+      console.log(`✅ Configured contract permissions for smart account ${deployedAddress}`);
+    } catch (error) {
+      permissionsError = error instanceof Error ? error.message : String(error);
+      console.error('Failed to configure smart account permissions:', permissionsError);
+    }
+
+    let walletAssociated = false;
+    let walletAssociationError: string | undefined;
+    let walletAddresses: string[] = [];
+    if (permissionsConfigured) {
+      try {
+        const association = await associateWalletWithUser(userId, deployedAddress);
+        walletAssociated = true;
+        walletAddresses = association.wallets;
+        if (association.alreadyLinked) {
+          console.log(`ℹ️ Wallet ${deployedAddress} is already linked to user ${userId}`);
+        } else {
+          console.log(`✅ Linked wallet ${deployedAddress} to user ${userId}`);
+        }
+      } catch (error) {
+        walletAssociationError = error instanceof Error ? error.message : String(error);
+        console.error('Failed to associate wallet after deploy:', walletAssociationError);
+      }
+    }
+
+    return {
+      accountAddress: deployedAddress,
+      webauthnValidator: SSO_CONTRACTS.webauthnValidator,
+      permissionsConfigured,
+      permissionsError,
+      walletAssociated,
+      walletAssociationError,
+      walletAddresses
+    };
   } catch (error) {
     console.error('Error deploying smart account:', error);
     throw error; // Rethrow so the router knows it failed

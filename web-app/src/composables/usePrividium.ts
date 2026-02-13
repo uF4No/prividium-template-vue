@@ -25,20 +25,52 @@ const prividiumSdkChain = {
 
 let prividiumInstance: PrividiumChain | null = null;
 
+type AppUserProfile = UserProfile & {
+  userId: string;
+  walletAddresses: string[];
+};
+
 const isAuthenticated = ref(false);
 const isAuthenticating = ref(false);
-const userProfile = ref<UserProfile | null>(null);
+const userProfile = ref<AppUserProfile | null>(null);
 const authError = ref<string | null>(null);
+
+function mapWalletAddresses(wallets: unknown[]): string[] {
+  return wallets
+    .map((wallet) => {
+      if (typeof wallet === 'string') {
+        return wallet;
+      }
+      if (
+        wallet &&
+        typeof wallet === 'object' &&
+        'walletAddress' in wallet &&
+        typeof (wallet as { walletAddress?: unknown }).walletAddress === 'string'
+      ) {
+        return (wallet as { walletAddress: string }).walletAddress;
+      }
+      return null;
+    })
+    .filter((walletAddress): walletAddress is string => walletAddress !== null);
+}
+
+function toAppUserProfile(profile: UserProfile): AppUserProfile {
+  return {
+    ...profile,
+    userId: profile.id,
+    walletAddresses: mapWalletAddresses(profile.wallets)
+  };
+}
 
 function initializePrividium(): PrividiumChain {
   if (!prividiumInstance) {
+    const prividiumApiBaseUrl = stripApiSuffix(import.meta.env.VITE_PRIVIDIUM_API_URL) ?? '';
     prividiumInstance = createPrividiumChain({
       clientId: import.meta.env.VITE_CLIENT_ID,
       chain: prividiumSdkChain,
-      rpcUrl: import.meta.env.VITE_PRIVIDIUM_RPC_URL,
       authBaseUrl: import.meta.env.VITE_PRIVIDIUM_AUTH_BASE_URL,
       redirectUrl: `${window.location.origin}/auth-callback.html`,
-      permissionsApiBaseUrl: stripApiSuffix(import.meta.env.VITE_PRIVIDIUM_API_URL) ?? '',
+      prividiumApiBaseUrl,
       onAuthExpiry: () => {
         console.log('Authentication expired');
         isAuthenticated.value = false;
@@ -60,16 +92,8 @@ async function loadUserProfile() {
   try {
     const sdkProfile = await prividium.fetchUser();
     console.debug('[prividium] fetchUser result', sdkProfile);
-    const sdkProfileWithId = sdkProfile as UserProfile & { id?: string };
-    const sdkUserId = sdkProfileWithId.userId ?? sdkProfileWithId.id ?? null;
-    if (sdkUserId) {
-      userProfile.value = {
-        ...(sdkProfile as UserProfile),
-        userId: sdkUserId
-      };
-      return;
-    }
-    console.debug('[prividium] fetchUser missing id, falling back to /profiles/me');
+    userProfile.value = toAppUserProfile(sdkProfile);
+    return;
   } catch (error) {
     console.error('Failed to fetch user profile via SDK:', error);
   }
@@ -134,11 +158,13 @@ async function loadUserProfile() {
             .filter((role): role is { roleName: string } => role !== null)
         : [];
       userProfile.value = {
+        id: userId,
         userId,
         createdAt: new Date(data.createdAt),
         displayName: data.displayName ?? null,
         updatedAt: new Date(data.updatedAt),
         roles,
+        wallets: walletAddresses,
         walletAddresses
       };
       return;
@@ -210,7 +236,12 @@ export function usePrividium() {
     nonce: number;
     calldata: `0x${string}`;
   }) {
-    return prividium.enableWalletToken(params);
+    return prividium.authorizeTransaction({
+      walletAddress: params.walletAddress,
+      toAddress: params.contractAddress,
+      nonce: params.nonce,
+      calldata: params.calldata
+    });
   }
 
   async function addNetworkToWallet() {

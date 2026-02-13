@@ -7,7 +7,7 @@ import BaseIcon from './BaseIcon.vue';
 
 const router = useRouter();
 const { account: ssoAccount } = useSsoAccount();
-const { signOut } = usePrividium();
+const { isAuthenticated, signOut } = usePrividium();
 
 const companyName = import.meta.env.VITE_COMPANY_NAME || 'Prividium™';
 const companyIcon = import.meta.env.VITE_COMPANY_ICON || 'CubeIcon';
@@ -83,11 +83,11 @@ onUnmounted(() => window.removeEventListener('click', closeDropdown));
           </div>
         </div>
 
-        <div v-else class="text-xs font-semibold text-slate-400">
+        <div v-else-if="isAuthenticated" class="text-xs font-semibold text-slate-400">
           SSO account not linked
         </div>
-        
         <button 
+          v-if="isAuthenticated"
           @click="logout"
           title="Sign Out"
           class="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all border border-transparent hover:border-red-100"

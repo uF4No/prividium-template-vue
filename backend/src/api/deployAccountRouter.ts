@@ -25,6 +25,7 @@ deployAccountRouter.post('/', async (req: Request, res: Response) => {
   console.log('deploying account with args:', args);
   let serviceResponse: ServiceResponse<unknown>;
   const BodySchema = z.object({
+    userId: z.string().min(1),
     originDomain: z.string().min(1),
     credentialId: z.string().min(10),
     credentialPublicKey: z.array(z.number())
@@ -33,12 +34,21 @@ deployAccountRouter.post('/', async (req: Request, res: Response) => {
   if (!parsed.success) {
     serviceResponse = ServiceResponse.failure('Missing required args', null);
   } else {
-    const accountAddress = await deploySmartAccount(
+    const deployResult = await deploySmartAccount(
+      args.userId,
       args.originDomain,
       args.credentialId,
       args.credentialPublicKey
     );
-    serviceResponse = ServiceResponse.success('Account deployed', { accountAddress });
+    if (!deployResult.permissionsConfigured || !deployResult.walletAssociated) {
+      serviceResponse = ServiceResponse.failure(
+        'Account deployed, but post-deploy setup failed',
+        deployResult,
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
+    } else {
+      serviceResponse = ServiceResponse.success('Account deployed', deployResult);
+    }
   }
   res.status(serviceResponse.statusCode).send(serviceResponse);
 });

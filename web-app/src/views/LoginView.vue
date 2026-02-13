@@ -23,100 +23,25 @@ const {
 } = usePrividium();
 const rpcClient = useRpcClient();
 
-const companyName = import.meta.env.VITE_COMPANY_NAME || 'Prividium™';
-const companyIcon = import.meta.env.VITE_COMPANY_ICON || 'CubeIcon';
-
 type UserWallet = { walletAddress: string };
-type UserRole = { roleName: string };
-type UserData = {
-  wallets?: UserWallet[];
-  walletAddresses?: string[];
-  roles?: UserRole[];
-  [key: string]: unknown;
-};
 
 // Passkey State (post-auth)
 const passkeyUsername = ref('');
 const passkeyError = ref<string | null>(null);
-const passkeyStep = ref<'idle' | 'checking' | 'creating' | 'deploying' | 'linking' | 'done'>(
-  'idle'
-);
+const passkeyStep = ref<'idle' | 'checking' | 'creating' | 'deploying' | 'done'>('idle');
+const setupMode = ref<'create' | 'existing' | null>(null);
+const setupSelection = ref<'create' | 'existing'>('create');
+const completedAccountAddress = ref<string | null>(null);
 
 watch(isAuthenticated, (next) => {
   if (next) {
     passkeyError.value = null;
     passkeyStep.value = 'idle';
+    setupMode.value = null;
+    setupSelection.value = 'create';
+    completedAccountAddress.value = null;
   }
 });
-
-// API to assign wallet to user
-async function assignWalletToUser(walletAddress: string) {
-  const headers = getAuthHeaders();
-  const userId = userProfile.value?.userId;
-
-  if (!userId || !headers) {
-    throw new Error('User not authenticated');
-  }
-
-  const apiBaseUrl = import.meta.env.VITE_PRIVIDIUM_API_URL?.replace(/\/$/, '');
-  const candidates = apiBaseUrl ? [`${apiBaseUrl}/users/${userId}`] : [];
-
-  // 1. Fetch current user data
-  let userResponse: Response | null = null;
-  let userData: UserData | null = null;
-
-  for (const url of candidates ?? []) {
-    userResponse = await fetch(url, { headers });
-    if (userResponse.ok) {
-      userData = await userResponse.json();
-      break;
-    }
-  }
-
-  if (!userResponse || !userResponse.ok || !userData) {
-    throw new Error('Failed to fetch user data');
-  }
-
-  // 2. Prepare payload with existing passkeys/wallets + new one
-  // Note: The API GET returns objects in wallets [], but PUT expects strings []
-  const existingWallets = (userData.wallets ?? []).map((w) => w.walletAddress);
-  const newWallets = [...new Set([...existingWallets, walletAddress])]; // unique
-
-  const payload = {
-    ...userData,
-    wallets: newWallets,
-    // Ensure these fields from GET are what PUT expects (remove keys if necessary,
-    // but schema says most are required and match)
-    // createdAt/updatedAt are usually ignored by server or readonly, but schema required them in PUT?
-    // Let's try sending what we got, filtering only immutable system fields if needed.
-    // Schema for PUT /users/{id} includes same fields as GET result essentially.
-    // Note: 'roles' in GET is Object[], in PUT is String[]. We must map it.
-    roles: (userData.roles ?? []).map((r) => r.roleName)
-  };
-
-  // 3. Update user
-  let updateResponse: Response | null = null;
-  for (const url of candidates ?? []) {
-    updateResponse = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-    if (updateResponse.ok) {
-      break;
-    }
-  }
-
-  if (!updateResponse || !updateResponse.ok) {
-    const error = await updateResponse?.json().catch(() => null);
-    throw new Error(error?.message || 'Failed to link wallet');
-  }
-
-  console.log('Successfully linked wallet:', walletAddress);
-}
 
 async function ensureUserProfileReady(options?: { requireUserId?: boolean }) {
   const requireUserId = options?.requireUserId ?? false;
@@ -142,12 +67,24 @@ async function redirectAfterAuth() {
   await router.push(redirectPath);
 }
 
+async function continueToApp() {
+  await redirectAfterAuth();
+}
+
 const createPasskey = async () => {
   if (!passkeyUsername.value) return;
   passkeyError.value = null;
+  completedAccountAddress.value = null;
+  setupMode.value = 'create';
   passkeyStep.value = 'creating';
 
   try {
+    await ensureUserProfileReady({ requireUserId: true });
+    const userId = userProfile.value?.userId;
+    if (!userId) {
+      throw new Error('User profile missing id');
+    }
+
     // 1. Create Passkey
     const creds = await createNewPasskey(passkeyUsername.value);
 
@@ -158,6 +95,7 @@ const createPasskey = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        userId,
         originDomain: window.location.origin,
         credentialId: creds.credentialId,
         credentialPublicKey: creds.credentialPublicKey
@@ -169,30 +107,42 @@ const createPasskey = async () => {
       throw new Error(errorData.error || errorData.message || 'Failed to deploy smart account');
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as {
+      responseObject?: {
+        accountAddress?: string;
+        walletAssociated?: boolean;
+        walletAssociationError?: string;
+      };
+      accountAddress?: string;
+    };
     const accountAddress = data?.responseObject?.accountAddress ?? data?.accountAddress;
-    if (!accountAddress) {
+    if (!accountAddress || !accountAddress.startsWith('0x')) {
       throw new Error('No account address returned from backend');
     }
+    if (data?.responseObject?.walletAssociated === false) {
+      throw new Error(
+        data?.responseObject?.walletAssociationError || 'Backend failed to link wallet to user'
+      );
+    }
+    const accountAddressHex = accountAddress as `0x${string}`;
 
-    // 3. Save Account & link to user
-    saveAccountAddress(accountAddress);
-    passkeyStep.value = 'linking';
-    await ensureUserProfileReady({ requireUserId: true });
-    await assignWalletToUser(accountAddress);
+    // 3. Save account and refresh the profile with linked wallets from backend.
+    saveAccountAddress(accountAddressHex);
+    await refreshUserProfile();
+    completedAccountAddress.value = accountAddressHex;
     passkeyStep.value = 'done';
-
-    passkeyUsername.value = '';
-    await redirectAfterAuth();
   } catch (e) {
     console.error(e);
     passkeyError.value = e instanceof Error ? e.message : 'Unknown error during passkey creation';
     passkeyStep.value = 'idle';
+    setupMode.value = null;
   }
 };
 
 const useExistingPasskey = async () => {
   passkeyError.value = null;
+  completedAccountAddress.value = null;
+  setupMode.value = 'existing';
   passkeyStep.value = 'checking';
 
   try {
@@ -240,7 +190,6 @@ const useExistingPasskey = async () => {
     console.debug('[passkeys] using from address', fromAddress);
     const result = await selectExistingPasskey(displayName, authClient, fromAddress);
     console.debug('[passkeys] selectExistingPasskey result', result);
-    passkeyStep.value = 'linking';
     const accountAddress = result.accountAddress?.toLowerCase();
     console.debug('[passkeys] passkey account address', accountAddress);
     console.debug(
@@ -248,45 +197,45 @@ const useExistingPasskey = async () => {
       accountAddress ? linkedWallets.includes(accountAddress) : false
     );
     if (accountAddress && !linkedWallets.includes(accountAddress)) {
-      const shouldLink = confirm(
-        'This passkey account is not linked to your profile yet. Link it now?'
+      throw new Error(
+        'This passkey account is not linked to your profile. Create it again to link automatically.'
       );
-      if (!shouldLink) {
-        throw new Error('Passkey account is not linked to your profile.');
-      }
-      await ensureUserProfileReady({ requireUserId: true });
-      await assignWalletToUser(result.accountAddress);
     }
+    completedAccountAddress.value = result.accountAddress;
     passkeyStep.value = 'done';
-    passkeyUsername.value = '';
-    await redirectAfterAuth();
   } catch (e) {
     console.error(e);
     passkeyError.value = e instanceof Error ? e.message : 'Unknown error during passkey selection';
     passkeyStep.value = 'idle';
+    setupMode.value = null;
   }
+};
+
+const resetSetup = () => {
+  if (['checking', 'creating', 'deploying'].includes(passkeyStep.value)) return;
+  passkeyUsername.value = '';
+  passkeyError.value = null;
+  passkeyStep.value = 'idle';
+  setupMode.value = null;
+  setupSelection.value = 'create';
+  completedAccountAddress.value = null;
 };
 </script>
 
 <template>
   <div class="min-h-[70vh] flex items-center justify-center p-6">
-    <div class="w-full max-w-md enterprise-card overflow-hidden">
-      <div class="p-10">
-        <!-- Enterprise Branding -->
-        <div class="flex flex-col items-center mb-10">
-          <div class="w-16 h-16 bg-slate-900 flex items-center justify-center rounded-full shadow-lg mb-6 text-white">
-            <BaseIcon :name="companyIcon" class="w-8 h-8" />
-          </div>
-          <h1 class="text-3xl font-bold text-slate-900 tracking-tight text-center">{{ companyName }}</h1>
-          <p class="text-slate-500 font-medium mt-2">Prividium™ Gateway</p>
-        </div>
-
-        <div class="text-center mb-10">
-          <h2 class="text-lg font-semibold text-slate-800 mb-2">
-            {{ isAuthenticated ? 'Complete Account Setup' : 'Secure Access' }}
+    <div :class="['w-full enterprise-card overflow-hidden', isAuthenticated ? 'max-w-4xl' : 'max-w-md']">
+      <div class="p-8 md:p-10">
+        <div class="text-center mb-10 md:mb-12">
+          <h2 :class="isAuthenticated ? 'text-4xl md:text-5xl font-bold text-slate-900 mb-3' : 'text-lg font-semibold text-slate-800 mb-2'">
+            {{ isAuthenticated ? 'Get Started' : 'Secure Access' }}
           </h2>
           <p class="text-slate-500 text-sm">
-            {{ isAuthenticated ? 'Link a passkey-protected smart account to your Prividium profile.' : 'Please authenticate to access your dashboard.' }}
+            {{
+              isAuthenticated
+                ? 'Set up your secure smart wallet to deploy and link it with your Prividium profile.'
+                : 'Please authenticate to access your dashboard.'
+            }}
           </p>
         </div>
 
@@ -297,54 +246,218 @@ const useExistingPasskey = async () => {
         </div>
 
         <!-- POST-AUTH PASSKEY FLOW -->
-        <div v-else-if="isAuthenticated" class="space-y-6">
-          <div
-            v-if="passkeyStep === 'checking' || passkeyStep === 'creating' || passkeyStep === 'deploying' || passkeyStep === 'linking'"
-            class="flex flex-col items-center py-4"
-          >
-              <div class="w-8 h-8 border-3 border-accent/10 border-t-accent rounded-full animate-spin mb-3"></div>
-              <p class="text-slate-500 text-xs uppercase tracking-wider">
-                {{
-                  passkeyStep === 'checking'
-                    ? 'Checking passkey...'
-                    : passkeyStep === 'creating'
-                      ? 'Creating Passkey...'
-                      : passkeyStep === 'deploying'
-                        ? 'Deploying Smart Account...'
-                        : 'Linking Smart Account...'
-                }}
-              </p>
-          </div>
-          <div v-else-if="passkeyStep === 'done'" class="text-center space-y-4">
-             <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600">
-               <BaseIcon name="CheckIcon" class="w-6 h-6" />
-             </div>
-             <p class="text-slate-700 font-medium">Account linked successfully!</p>
-          </div>
-          <div v-else class="space-y-4">
-            <div class="space-y-2">
-              <label class="text-xs font-bold text-slate-700 uppercase tracking-wide">Username</label>
-              <input 
-                v-model="passkeyUsername"
-                type="text" 
-                placeholder="ex. alice"
-                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
-                @keyup.enter="createPasskey"
-              />
+        <div v-else-if="isAuthenticated" class="space-y-4">
+          <div class="rounded-3xl border border-slate-200 bg-white px-5 py-5 md:px-6">
+            <div class="flex flex-col gap-4 md:flex-row md:items-start">
+              <div class="shrink-0">
+                <div
+                  v-if="passkeyStep === 'checking' || passkeyStep === 'creating'"
+                  class="w-11 h-11 rounded-full border-2 border-accent/20 border-t-accent animate-spin"
+                ></div>
+                <div
+                  v-else-if="passkeyStep === 'deploying' || passkeyStep === 'done'"
+                  class="w-11 h-11 rounded-full bg-green-100 text-green-700 flex items-center justify-center"
+                >
+                  <BaseIcon name="CheckIcon" class="w-6 h-6" />
+                </div>
+                <div
+                  v-else
+                  class="w-11 h-11 rounded-full border border-dashed border-slate-300 text-slate-500 text-sm font-semibold flex items-center justify-center"
+                >
+                  1
+                </div>
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p class="text-2xl font-semibold text-slate-900 leading-tight">Security Key Setup</p>
+                    <p class="text-sm text-slate-500 mt-1">
+                      {{
+                        passkeyStep === 'checking'
+                          ? 'Validating your existing passkey.'
+                          : passkeyStep === 'creating'
+                            ? 'Creating your new passkey on this device.'
+                            : passkeyStep === 'deploying' || passkeyStep === 'done'
+                              ? 'Security key ready for account setup.'
+                              : 'Choose how you want to proceed.'
+                      }}
+                    </p>
+                  </div>
+                  <button
+                    v-if="passkeyStep === 'done'"
+                    @click="resetSetup"
+                    class="enterprise-button-secondary px-5 py-2.5 text-sm"
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                <div class="mt-4 inline-flex items-center rounded-xl bg-slate-100 p-1">
+                  <button
+                    @click="setupSelection = 'create'"
+                    :disabled="passkeyStep !== 'idle'"
+                    :class="[
+                      'px-4 py-2 text-sm font-semibold rounded-lg transition',
+                      setupSelection === 'create'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500',
+                      passkeyStep !== 'idle' ? 'opacity-60 cursor-not-allowed' : ''
+                    ]"
+                  >
+                    Create New Passkey
+                  </button>
+                  <button
+                    @click="setupSelection = 'existing'"
+                    :disabled="passkeyStep !== 'idle'"
+                    :class="[
+                      'px-4 py-2 text-sm font-semibold rounded-lg transition',
+                      setupSelection === 'existing'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500',
+                      passkeyStep !== 'idle' ? 'opacity-60 cursor-not-allowed' : ''
+                    ]"
+                  >
+                    Use Existing
+                  </button>
+                </div>
+
+                <div v-if="setupSelection === 'create' && passkeyStep === 'idle'" class="mt-4">
+                  <label class="text-xs font-bold text-slate-700 uppercase tracking-wide">Username</label>
+                  <input
+                    v-model="passkeyUsername"
+                    type="text"
+                    placeholder="ex. alice"
+                    class="mt-2 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                    @keyup.enter="createPasskey"
+                  />
+                </div>
+
+                <p v-else-if="setupSelection === 'existing' && passkeyStep === 'idle'" class="mt-4 text-sm text-slate-500">
+                  Select your existing passkey to continue with the wallet already linked to your profile.
+                </p>
+                <div class="mt-5 flex md:justify-end">
+                <button
+                  v-if="passkeyStep === 'idle'"
+                  @click="setupSelection === 'create' ? createPasskey() : useExistingPasskey()"
+                  :disabled="setupSelection === 'create' && !passkeyUsername"
+                    class="enterprise-button-primary w-full md:w-64 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {{ setupSelection === 'create' ? 'Create Passkey' : 'Use Existing Passkey' }}
+                </button>
+                <button
+                  v-else-if="passkeyStep === 'checking' || passkeyStep === 'creating'"
+                  disabled
+                    class="enterprise-button-secondary w-full md:w-64 py-3 opacity-70 cursor-not-allowed"
+                >
+                  Processing...
+                </button>
+                </div>
+              </div>
             </div>
-             <button 
-              @click="createPasskey"
-              :disabled="!passkeyUsername"
-              class="enterprise-button-primary w-full py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Create Account
-            </button>
-            <button 
-              @click="useExistingPasskey"
-              class="enterprise-button-secondary w-full py-3"
-            >
-              Use Existing Passkey
-            </button>
+          </div>
+
+          <div class="rounded-3xl border border-slate-200 bg-white px-5 py-5 md:px-6">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center">
+              <div class="shrink-0">
+                <div
+                  v-if="passkeyStep === 'deploying'"
+                  class="w-11 h-11 rounded-full border-2 border-accent/20 border-t-accent animate-spin"
+                ></div>
+                <div
+                  v-else-if="passkeyStep === 'done' && setupMode === 'create'"
+                  class="w-11 h-11 rounded-full bg-green-100 text-green-700 flex items-center justify-center"
+                >
+                  <BaseIcon name="CheckIcon" class="w-6 h-6" />
+                </div>
+                <div
+                  v-else-if="passkeyStep === 'done' && setupMode === 'existing'"
+                  class="w-11 h-11 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-lg font-semibold"
+                >
+                  -
+                </div>
+                <div
+                  v-else
+                  class="w-11 h-11 rounded-full border border-dashed border-slate-300 text-slate-500 text-sm font-semibold flex items-center justify-center"
+                >
+                  2
+                </div>
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <p class="text-2xl font-semibold text-slate-900 leading-tight">Deploy & Link Smart Wallet</p>
+                <p class="text-sm text-slate-500 mt-1">
+                  {{
+                    passkeyStep === 'deploying'
+                      ? 'Deploying wallet, funding it, and linking it to your Prividium profile.'
+                      : passkeyStep === 'done' && setupMode === 'create'
+                        ? 'Smart wallet deployed and linked.'
+                        : passkeyStep === 'done' && setupMode === 'existing'
+                          ? 'Skipped. Existing linked passkey selected.'
+                          : 'This step starts after passkey setup.'
+                  }}
+                </p>
+              </div>
+
+              <div class="shrink-0 md:w-56">
+                <button
+                  v-if="passkeyStep === 'deploying'"
+                  disabled
+                  class="enterprise-button-primary w-full py-3 opacity-70 cursor-not-allowed"
+                >
+                  Deploying...
+                </button>
+                <button
+                  v-else-if="passkeyStep === 'done' && setupMode === 'create'"
+                  disabled
+                  class="enterprise-button-secondary w-full py-3"
+                >
+                  Linked
+                </button>
+                <button
+                  v-else-if="passkeyStep === 'done' && setupMode === 'existing'"
+                  disabled
+                  class="enterprise-button-secondary w-full py-3"
+                >
+                  Not Required
+                </button>
+                <button
+                  v-else
+                  disabled
+                  class="enterprise-button-secondary w-full py-3 opacity-70 cursor-not-allowed"
+                >
+                  Waiting Step 1
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-if="passkeyStep === 'done'"
+            class="rounded-3xl border border-green-200 bg-green-50 px-5 py-5 md:px-6"
+          >
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p class="text-base font-semibold text-green-900">
+                  {{
+                    setupMode === 'create'
+                      ? 'Smart account deployed and linked to your Prividium profile.'
+                      : 'Passkey selected successfully.'
+                  }}
+                </p>
+                <p v-if="completedAccountAddress" class="mt-1 text-sm text-green-800 break-all">
+                  Account: {{ completedAccountAddress }}
+                </p>
+              </div>
+              <div class="flex gap-2">
+                <button
+                  @click="continueToApp"
+                  class="enterprise-button-primary px-5 py-3"
+                >
+                  Continue to App
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

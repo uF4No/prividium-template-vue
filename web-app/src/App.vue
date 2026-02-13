@@ -2,9 +2,6 @@
 import { onMounted } from 'vue';
 import AppFooter from './components/AppFooter.vue';
 import AppNavbar from './components/AppNavbar.vue';
-import { usePrividium } from './composables/usePrividium';
-
-const { isAuthenticated } = usePrividium();
 const accentColor = import.meta.env.VITE_ACCENT_COLOR || '#2563eb';
 
 const companyName = import.meta.env.VITE_COMPANY_NAME || 'Prividium™';
@@ -17,7 +14,7 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen flex flex-col font-sans">
-    <AppNavbar v-if="isAuthenticated" />
+    <AppNavbar />
     
     <main class="flex-grow container mx-auto px-4 py-12 max-w-7xl">
       <RouterView />

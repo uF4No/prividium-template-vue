@@ -10,8 +10,15 @@ export function useSsoAccount() {
   const { userWallets } = usePrividium();
 
   const refresh = () => {
-    const profileWallet = userWallets.value?.[0] as Address | undefined;
-    ssoAccount.value = profileWallet ?? null;
+    const { savedAccount } = loadExistingPasskey();
+    if (!savedAccount) {
+      ssoAccount.value = null;
+      return;
+    }
+
+    const linkedWallets = (userWallets.value ?? []).map((wallet) => wallet.toLowerCase());
+    const isLinked = linkedWallets.includes(savedAccount.toLowerCase());
+    ssoAccount.value = isLinked ? savedAccount : null;
   };
 
   onMounted(() => {
