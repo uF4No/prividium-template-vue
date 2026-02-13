@@ -35,9 +35,12 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
       - name: Build
-        run: cd contracts && forge build
+        run: |
+          cd contracts
+          [ -d lib/forge-std/src ] || forge install foundry-rs/forge-std@v1.9.6 --no-git
+          forge build
 
   build-web-app:
     name: Build Web App
