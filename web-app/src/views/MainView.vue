@@ -36,12 +36,12 @@
     </div>
 
     <!-- Error Banner -->
-    <div v-if="errorMessage" class="mx-auto max-w-2xl px-5 py-4 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
-      <div class="flex items-center gap-3">
-        <BaseIcon name="ExclamationTriangleIcon" class="w-5 h-5 text-red-600" />
-        <p class="text-red-800 font-bold text-xs uppercase tracking-wide">{{ errorMessage }}</p>
-      </div>
-      <button @click="errorMessage = ''" class="text-red-400 hover:text-red-600 transition-colors">&times;</button>
+    <div v-if="errorMessage" class="mx-auto w-full max-w-2xl px-5 py-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
+      <BaseIcon name="ExclamationTriangleIcon" class="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+      <p class="min-w-0 flex-1 text-red-800 font-semibold text-xs leading-relaxed" style="overflow-wrap:anywhere;">
+        {{ errorMessage }}
+      </p>
+      <button @click="errorMessage = ''" class="text-red-400 hover:text-red-600 transition-colors shrink-0">&times;</button>
     </div>
 
     <!-- Secondary Actions & Info -->
@@ -206,6 +206,32 @@ const rpcClient = useRpcClient();
 const isConnected = ref(false);
 const isLoading = ref(false);
 const errorMessage = ref('');
+const MAX_ERROR_MESSAGE_LENGTH = 220;
+
+const truncateError = (message: string, maxLength = MAX_ERROR_MESSAGE_LENGTH) => {
+  if (message.length <= maxLength) return message;
+  return `${message.slice(0, maxLength - 1).trimEnd()}…`;
+};
+
+const formatTransactionError = (
+  error: unknown,
+  fallback = 'Failed to send transaction'
+): string => {
+  const rawMessage = error instanceof Error ? error.message : '';
+  if (!rawMessage) return fallback;
+
+  const detailsMatch = rawMessage.match(/details:\s*(.+)$/i);
+  if (detailsMatch?.[1]) {
+    return truncateError(detailsMatch[1]);
+  }
+
+  const firstLine = rawMessage.split('\n')[0]?.trim();
+  if (firstLine) {
+    return truncateError(firstLine);
+  }
+
+  return fallback;
+};
 
 // Initialize Counter Hook
 const counterContract = computed(() => {
@@ -286,7 +312,7 @@ const incrementCounter = async () => {
     await loadContractInfo();
   } catch (error) {
     console.error('Failed to increment counter:', error);
-    errorMessage.value = error instanceof Error ? error.message : 'Failed to increment counter';
+    errorMessage.value = formatTransactionError(error, 'Failed to increment counter');
     const pendingTx = transactions.value.find(
       (t) => t.status === 'pending' && t.function === 'inc()'
     );
@@ -311,7 +337,7 @@ const incrementCounterBy = async () => {
     await loadContractInfo();
   } catch (error) {
     console.error('Failed to increment counter by amount:', error);
-    errorMessage.value = error instanceof Error ? error.message : 'Failed to increment counter';
+    errorMessage.value = formatTransactionError(error, 'Failed to increment counter');
     const pendingTx = transactions.value.find(
       (t) => t.status === 'pending' && t.function.startsWith('incBy')
     );

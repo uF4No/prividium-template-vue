@@ -129,7 +129,8 @@ async function main() {
       entryPoint: ssoContracts.entryPoint,
       accountImplementation: ssoContracts.accountImplementation,
       beacon: ssoContracts.beacon,
-      factory: ssoContracts.factory
+      factory: ssoContracts.factory,
+      ssoBytecodeHash: ssoContracts.ssoBytecodeHash
     },
     interop: interopConfig
   });
@@ -182,6 +183,7 @@ async function main() {
   console.log(
     `  Factory: ${ssoContracts.factory} (${ssoContracts.deployed.factory ? 'deployed' : 'existing'})`
   );
+  console.log(`  Account bytecode hash: ${ssoContracts.ssoBytecodeHash}`);
 
   outro('System contracts setup complete.');
 }

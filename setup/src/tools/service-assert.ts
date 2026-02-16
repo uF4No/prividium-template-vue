@@ -26,12 +26,12 @@ export async function assertPrividiumApiUp(baseUrl: string): Promise<string> {
 
   for (const candidate of candidates) {
     const healthPaths = [
-      new URL('/health/', candidate).toString(),
-      new URL('/api/health/', candidate).toString()
+      new URL('/health', candidate).toString(),
+      new URL('/api/health', candidate).toString()
     ];
     for (const path of healthPaths) {
       if (await checkHealth(path)) {
-        if (path.endsWith('/api/health/')) {
+        if (path.endsWith('/api/health')) {
           return normalizeBaseUrl(new URL('/api', candidate).toString());
         }
         return normalizeBaseUrl(candidate);

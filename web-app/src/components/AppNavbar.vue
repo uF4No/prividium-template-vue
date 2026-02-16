@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePrividium } from '../composables/usePrividium';
 import { useSsoAccount } from '../composables/useSsoAccount';
@@ -14,6 +14,7 @@ const companyIcon = import.meta.env.VITE_COMPANY_ICON || 'CubeIcon';
 
 const dropdownOpen = ref(false);
 const copied = ref(false);
+const canShowSessionControls = computed(() => Boolean(isAuthenticated.value || ssoAccount.value));
 
 const copyAddress = () => {
   if (ssoAccount.value) {
@@ -83,11 +84,11 @@ onUnmounted(() => window.removeEventListener('click', closeDropdown));
           </div>
         </div>
 
-        <div v-else-if="isAuthenticated" class="text-xs font-semibold text-slate-400">
+        <div v-else-if="canShowSessionControls" class="text-xs font-semibold text-slate-400">
           SSO account not linked
         </div>
         <button 
-          v-if="isAuthenticated"
+          v-if="canShowSessionControls"
           @click="logout"
           title="Sign Out"
           class="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all border border-transparent hover:border-red-100"
