@@ -30,3 +30,6 @@ dist-ssr
 contracts/out/
 contracts/cache/
 contracts/lib/
+
+# Config
+config/contracts.json

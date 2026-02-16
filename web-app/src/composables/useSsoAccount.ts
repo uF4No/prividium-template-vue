@@ -17,6 +17,11 @@ export function useSsoAccount() {
     }
 
     const linkedWallets = (userWallets.value ?? []).map((wallet) => wallet.toLowerCase());
+    if (!linkedWallets.length) {
+      // Keep the locally selected account visible if profile wallets are temporarily unavailable.
+      ssoAccount.value = savedAccount;
+      return;
+    }
     const isLinked = linkedWallets.includes(savedAccount.toLowerCase());
     ssoAccount.value = isLinked ? savedAccount : null;
   };

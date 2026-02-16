@@ -1,5 +1,6 @@
+import { randomBytes } from 'node:crypto';
 import type { Abi, Address, Hex, Transport } from 'viem';
-import { http, createPublicClient, createWalletClient, defineChain } from 'viem';
+import { createPublicClient, createWalletClient, defineChain, http, keccak256 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 import EOAKeyValidatorArtifact from '../system/contracts/EOAKeyValidator.json';
@@ -77,6 +78,7 @@ export type SsoDeploymentResult = {
   accountImplementation: Address;
   beacon: Address;
   factory: Address;
+  ssoBytecodeHash: `0x${string}`;
   deployed: {
     eoaValidator: boolean;
     webauthnValidator: boolean;
@@ -150,6 +152,37 @@ export async function deploySsoContracts(config: SsoDeployConfig): Promise<SsoDe
     const deployedAddress = receipt.contractAddress as Address;
     console.log(`✅ Account implementation deployed at: ${deployedAddress}`);
     return { address: deployedAddress, deployed: true };
+  }
+
+  async function deploySsoAccountAndComputeBytecodeHash(factoryAddress: Address): Promise<Hex> {
+    const salt = `0x${randomBytes(32).toString('hex')}` as Hex;
+    const initData = '0x' as Hex;
+
+    console.log('🚀 Deploying SSO account via factory.deployAccount...');
+    const { request, result: deployedAccount } = await publicClient.simulateContract({
+      account,
+      address: factoryAddress,
+      abi: MSA_FACTORY_ABI,
+      functionName: 'deployAccount',
+      args: [salt, initData]
+    });
+
+    const hash = await walletClient.writeContract(request);
+    console.log(`Factory deployAccount tx: ${hash}`);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    if (receipt.status !== 'success') {
+      throw new Error('MSAFactory deployAccount failed');
+    }
+
+    const code = await publicClient.getBytecode({ address: deployedAccount });
+    if (!code || code === '0x') {
+      throw new Error(`No code at deployed SSO account: ${deployedAccount}`);
+    }
+
+    const bytecodeHash = keccak256(code);
+    console.log(`✅ SSO account deployed at: ${deployedAccount}`);
+    console.log(`✅ SSO account bytecode hash: ${bytecodeHash}`);
+    return bytecodeHash;
   }
 
   async function ensureBeacon(): Promise<{
@@ -364,7 +397,7 @@ export async function deploySsoContracts(config: SsoDeployConfig): Promise<SsoDe
     const configured = config.configured?.entryPoint;
     if (!configured) {
       throw new Error(
-        'Missing entryPoint address. Set SSO_ENTRYPOINT_CONTRACT in contracts config.'
+        'Missing entryPoint address. Set PRIVIDIUM_ENTRYPOINT_ADDRESS in .env or contracts config.'
       );
     }
     const hasEntryPoint = await hasCode(configured);
@@ -384,6 +417,7 @@ export async function deploySsoContracts(config: SsoDeployConfig): Promise<SsoDe
   const entryPoint = await ensureEntryPoint();
   const beacon = await ensureBeacon();
   const factory = await ensureFactory(beacon.address);
+  const ssoBytecodeHash = await deploySsoAccountAndComputeBytecodeHash(factory.address);
 
   return {
     eoaValidator: eoaValidator.address,
@@ -394,6 +428,7 @@ export async function deploySsoContracts(config: SsoDeployConfig): Promise<SsoDe
     accountImplementation: beacon.implementation,
     beacon: beacon.address,
     factory: factory.address,
+    ssoBytecodeHash,
     deployed: {
       eoaValidator: eoaValidator.deployed,
       webauthnValidator: webauthnValidator.deployed,

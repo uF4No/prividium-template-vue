@@ -104,7 +104,7 @@ async function main() {
           | undefined),
       entryPoint:
         existingContractsConfig?.sso?.entryPoint ??
-        (extractConfigOptional(setupEnvPath, 'SSO_ENTRYPOINT_CONTRACT') as
+        (extractConfigOptional(setupEnvPath, 'PRIVIDIUM_ENTRYPOINT_ADDRESS') as
           | `0x${string}`
           | undefined),
       accountImplementation:
@@ -139,7 +139,8 @@ async function main() {
       entryPoint: ssoContracts.entryPoint,
       accountImplementation: ssoContracts.accountImplementation,
       beacon: ssoContracts.beacon,
-      factory: ssoContracts.factory
+      factory: ssoContracts.factory,
+      ssoBytecodeHash: ssoContracts.ssoBytecodeHash
     },
     interop: interopConfig
   });
@@ -214,8 +215,11 @@ async function main() {
   console.log(
     `  Factory: ${ssoContracts.factory} (${ssoContracts.deployed.factory ? 'deployed' : 'existing'})`
   );
+  console.log(`  Account bytecode hash: ${ssoContracts.ssoBytecodeHash}`);
 
-  outro('Setup complete! 🎉\n\nYou can now run the web app with: pnpm dev');
+  outro(
+    'Setup complete! 🎉\n\nYou must now run both the backend and web app in separate terminals:\n\n1. Backend: pnpm dev:backend\n2. Web App: pnpm dev'
+  );
 }
 
 main().catch((e) => {

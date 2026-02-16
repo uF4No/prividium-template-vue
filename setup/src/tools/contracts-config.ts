@@ -6,6 +6,7 @@ export type ContractsConfig = {
     factory?: `0x${string}`;
     beacon?: `0x${string}`;
     accountImplementation?: `0x${string}`;
+    ssoBytecodeHash?: `0x${string}`;
     webauthnValidator?: `0x${string}`;
     eoaValidator?: `0x${string}`;
     sessionValidator?: `0x${string}`;

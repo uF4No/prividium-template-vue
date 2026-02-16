@@ -31,19 +31,24 @@ Ensure your Prividium environment is running and configured in `setup/.env`.
 Contract addresses are written to `config/contracts.json` and should not be edited manually. 
 All `.env` files are derived from this canonical config.
 
-- **ADMIN_PRIVATE_KEY**: Admin account private key used to authenticate and deploy contracts.
+- **ADMIN_PRIVATE_KEY**: Admin account private key used to authenticate on the Prividium chain and deploy contracts.
 - **ADMIN_ADDRESS**: Address that corresponds to `ADMIN_PRIVATE_KEY`.
 - **PRIVIDIUM_API_URL**: Prividium API base URL (include `/api`, e.g. `http://localhost:8000/api`).
 - **PRIVIDIUM_AUTH_BASE_URL**: Prividium Auth service base URL (e.g. `http://localhost:3001`).
 - **PRIVIDIUM_RPC_URL**: ZKsync OS RPC URL (e.g. `http://localhost:8000/rpc`).
 - **PRIVIDIUM_CHAIN_ID**: Chain ID for the target Prividium chain.
-- **CONTRACTS_CONFIG_PATH**: Path to `config/contracts.json` (default: `../config/contracts.json`).
+- **PRIVIDIUM_ENTRYPOINT_ADDRESS**: Address of the entrypoint contract on the Prividium chain.
+- **PRIVIDIUM_APP_NAME**: Name of the app that will be created in the Prividium system to obtain a client id for the web-app.
+- **PRIVIDIUM_APP_ORIGIN**: Allowed origin for the client id. Should match the host and port where the web-app is running.
+- **PRIVIDIUM_APP_REDIRECT_URIS**: Redirect URIs for the client id. Should match the redirect page of the web-app (e.g. http://localhost:3002/auth-callback.html)
+- **PRIVIDIUM_APP_CONTRACT_ARTIFACTS**: Path to the json artifacts of the contracts to be deployed. 
+- **CONTRACTS_CONFIG_PATH**: Path to `config/contracts.json` where all addresses will be saved (default: `../config/contracts.json`).
 
 ### 2. Run the Setup
 
 ```bash
 cd setup
-pnpm setup
+pnpm run setup
 ```
 
 This script will execute the flow defined in `src/main.ts`, which by default:

@@ -399,36 +399,6 @@ const resetSetup = () => {
                 </p>
               </div>
 
-              <div class="shrink-0 md:w-56">
-                <button
-                  v-if="passkeyStep === 'deploying'"
-                  disabled
-                  class="enterprise-button-primary w-full py-3 opacity-70 cursor-not-allowed"
-                >
-                  Deploying...
-                </button>
-                <button
-                  v-else-if="passkeyStep === 'done' && setupMode === 'create'"
-                  disabled
-                  class="enterprise-button-secondary w-full py-3"
-                >
-                  Linked
-                </button>
-                <button
-                  v-else-if="passkeyStep === 'done' && setupMode === 'existing'"
-                  disabled
-                  class="enterprise-button-secondary w-full py-3"
-                >
-                  Not Required
-                </button>
-                <button
-                  v-else
-                  disabled
-                  class="enterprise-button-secondary w-full py-3 opacity-70 cursor-not-allowed"
-                >
-                  Waiting Step 1
-                </button>
-              </div>
             </div>
           </div>
 
