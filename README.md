@@ -4,11 +4,11 @@ This template is a starting point for building privacy-focused decentralized app
 
 ## Main Features
 
-🔐 ZKsync SSO Smart accounts and Passkeys (no browser wallets needed)
-🫆 Transaction signing with biometrics
-🤖 AI Agents context files
-⚙️ Setup script for Prividium permissions
-🎨 Easy branding and style customization
+- 🔐 ZKsync SSO Smart accounts and Passkeys (no browser wallets needed)
+- 🫆 Transaction signing with biometrics
+- 🤖 AI Agents context files
+- ⚙️ Setup script for Prividium permissions
+- 🎨 Easy branding and style customization
  
 ## Using this template
 
