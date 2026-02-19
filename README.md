@@ -1,10 +1,18 @@
-# Prividium Template - Vue & Foundry Monorepo
+# Prividium Template Vue Monorepo
 
-Welcome to the ZKsync Prividium™ template! This monorepo provides a complete starting point for building privacy-focused decentralized applications on Prividium™ chains.
+This template is a starting point for building privacy-focused decentralized applications on Prividium™ chains. It includes a basic counter contract, a setup script to deploy contracts and configure permissions for the sample counter contract in the ZKsync Prividium™ ecosystem, a Node.js backend service necessary for ZKsync SSO Smart Account deployment, and a Vue 3 + TypeScript frontend demonstrating Prividium authentication and secure RPC proxying to interact with smart contracts.
+
+## Main Features
+
+🔐 ZKsync SSO Smart accounts and Passkeys (no browser wallets needed)
+🫆 Transaction signing with biometrics
+🤖 AI Agents context files
+⚙️ Setup script for Prividium permissions
+🎨 Easy branding and style customization
  
 ## Using this template
 
-This template is a starting point for building privacy-focused decentralized applications on Prividium™ chains. It includes a basic counter contract, a setup script to deploy contracts and configure permissions for the sample counter contract in the ZKsync Prividium™ ecosystem, a Node.js backend service necessary for ZKsync SSO Smart Account deployment, and a Vue 3 + TypeScript frontend demonstrating Prividium authentication and secure RPC proxying to interact with smart contracts.
+[Click here to create a new repo from this template](https://github.com/new?template_name=prividium-template-vue&template_owner=uF4No)
 
 ### Branding and style customization
 
