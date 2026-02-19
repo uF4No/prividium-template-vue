@@ -14,6 +14,10 @@ This template is a starting point for building privacy-focused decentralized app
 
 [Click here to create a new repo from this template](https://github.com/new?template_name=prividium-template-vue&template_owner=uF4No)
 
+### Working with AI
+
+You can find AI context files in the `ai-context/` directory. These files provide context to AI agents about the project structure, code references, and best practices when building applications for Prividium chains.
+
 ### Branding and style customization
 
 The web app can be easily updated to use different branding by updating the following environment variables in the `web-app/.env` file:
