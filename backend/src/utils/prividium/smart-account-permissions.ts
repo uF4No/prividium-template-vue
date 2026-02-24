@@ -5,6 +5,7 @@ import { toFunctionSelector } from 'viem';
 import type { Hex } from 'viem';
 import { getPrividiumAuthToken } from '../client';
 import { env } from '../envConfig';
+import { unknown } from 'zod/v4';
 
 type AbiItem = {
   type?: string;
@@ -34,7 +35,7 @@ function buildApiUrl(path: string) {
   return `${base}${normalizedPath}`;
 }
 
-function getModularSmartAccountArtifact(): { abi: unknown[]; functions: readonly AbiFunction[] } {
+function getModularSmartAccountArtifact(): { abi: unknown[]; functions: readonly AbiFunction[], hasReceive: boolean } {
   const candidates = [
     resolve(process.cwd(), 'setup/src/system/contracts/ModularSmartAccount.json'),
     resolve(__dirname, '../../../../setup/src/system/contracts/ModularSmartAccount.json')
@@ -63,7 +64,10 @@ function getModularSmartAccountArtifact(): { abi: unknown[]; functions: readonly
       'stateMutability' in (item as object) &&
       typeof (item as { stateMutability?: unknown }).stateMutability === 'string'
   );
-  return { abi, functions };
+
+  const hasReceive = abi.some((u: unknown) => typeof u === 'object' && u !== null && 'type' in u && u.type === 'receive');
+
+  return { abi, functions, hasReceive };
 }
 
 function formatParamType(param: {
@@ -159,7 +163,28 @@ export async function configureSmartAccountPermissions(contractAddress: Hex) {
   const token = await getPrividiumAuthToken();
   const contract = await ensureContractRegistered(token, contractAddress);
   const targetAddress = (contract?.contractAddress || contractAddress) as Hex;
-  const { functions } = getModularSmartAccountArtifact();
+  const { functions, hasReceive } = getModularSmartAccountArtifact();
+
+
+  if (hasReceive) {
+    await fetch(buildApiUrl('/contract-permissions/'), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contractAddress: targetAddress,
+        accessType: 'write',
+        argumentRestrictions: [],
+        roles: [],
+        functionSignature: 'receive() external payable',
+        methodSelector: '0x',
+        ruleType: 'public'
+      })
+    });
+  }
+
 
   for (const abiItem of functions) {
     const accessType =
