@@ -4,14 +4,20 @@
     <!-- Hero / Balance Section (Matching Image 0) -->
     <div class="flex flex-col items-center justify-center text-center py-12 space-y-6">
       <div class="space-y-2">
-        <p class="text-sm font-semibold text-slate-500">Your Counter Value</p>
-        <h2 class="text-6xl font-bold text-slate-900 tracking-tight transition-all tabular-nums">
-          {{ counterValue || '0' }} <span class="text-3xl text-slate-400 font-medium ml-1">UNITS</span>
+        <p class="text-sm font-normal text-neutral-600">Your Counter Value</p>
+        <h2 class="text-6xl font-bold tracking-tight transition-all tabular-nums">
+          {{ counterValue || '0' }} <span class="text-3xl text-neutral-600 font-medium ml-1">UNITS</span>
         </h2>
-        <div class="flex items-center gap-2 justify-center bg-white px-4 py-1.5 rounded-full border border-slate-100 shadow-sm mt-4 group cursor-pointer hover:border-accent/30 transition-all" @click="copyContractAddress">
-          <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-2">Target Contract</span>
-          <span class="text-xs font-mono text-slate-500">{{ currentContractAddress?.slice(0, 10) }}...{{ currentContractAddress?.slice(-8) }}</span>
-          <BaseIcon :name="copied ? 'CheckIcon' : 'DocumentDuplicateIcon'" :class="copied ? 'text-green-500' : 'text-slate-300 group-hover:text-accent'" class="w-3.5 h-3.5 transition-colors" />
+        <div class="inline-flex items-center gap-3 justify-center bg-brand-600/5 px-5 py-1.5 rounded-full mt-4 group cursor-pointer hover:bg-brand-600/10 transition-[background-color]" @click="copyContractAddress">
+          <template v-if="copied">
+            <span class="text-sm font-medium text-neutral-900">Copied</span>
+            <BaseIcon name="CheckIcon" class="w-4.5 h-4.5 text-neutral-900" />
+          </template>
+          <template v-else>
+            <span class="text-sm font-normal">Target Contract</span>
+            <span class="text-sm font-mono">{{ currentContractAddress?.slice(0, 10) }}...{{ currentContractAddress?.slice(-8) }}</span>
+            <BaseIcon name="DocumentDuplicateIcon" class="w-4.5 h-4.5" />
+          </template>
         </div>
       </div>
 
@@ -19,24 +25,24 @@
         <button 
           @click="incrementCounter"
           :disabled="isLoading"
-          class="enterprise-button-primary min-w-[180px] h-14 text-base font-semibold"
+          class="btn btn-l btn-primary min-w-[180px]"
         >
-          <BaseIcon name="PlusCircleIcon" class="w-5 h-5" />
-          Increment
+          <BaseIcon name="PlusCircleIcon" :class="{ 'animate-spin': isLoading }" class="w-5 h-5" />
+          {{ isLoading ? 'Sending...' : 'Increment' }}
         </button>
         <button 
           @click="getCounterValue"
           :disabled="isLoading"
-          class="enterprise-button-secondary min-w-[180px] h-14 text-base font-semibold"
+          class="btn btn-l btn-secondary min-w-[180px]"
         >
           <BaseIcon name="ArrowPathIcon" :class="{ 'animate-spin': isLoading }" class="w-5 h-5" />
-          Refresh
+          {{ isLoading ? 'Refreshing...' : 'Refresh' }}
         </button>
       </div>
     </div>
 
     <!-- Error Banner -->
-    <div v-if="errorMessage" class="mx-auto w-full max-w-2xl px-5 py-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
+    <div v-if="errorMessage" class="mx-auto w-full max-w-2xl px-5 py-4 bg-red-50 border border-red-100 rounded-full flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
       <BaseIcon name="ExclamationTriangleIcon" class="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
       <p class="min-w-0 flex-1 text-red-800 font-semibold text-xs leading-relaxed" style="overflow-wrap:anywhere;">
         {{ errorMessage }}
@@ -48,26 +54,21 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <!-- Batch Operation Card -->
       <div class="enterprise-card p-8 space-y-6">
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-bold text-slate-900">Operation</h3>
-          <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
-            <BaseIcon name="BoltIcon" class="w-5 h-5 text-slate-400" />
-          </div>
-        </div>
-        <p class="text-slate-500 text-sm">Update the counter by a specific amount in a single transaction.</p>
+        <h3 class="text-lg font-bold">Operation</h3>
+        <p class="text-neutral-600 text-sm">Update the counter by a specific amount in a single transaction.</p>
         
-        <div class="flex gap-3 mt-4">
-          <input 
+        <div class="flex flex-col sm:flex-row gap-3 mt-4">
+          <input
             v-model="incrementAmount"
             type="number"
             min="1"
             placeholder="Amount"
-            class="enterprise-input flex-grow h-12"
+            class="enterprise-input grow h-12"
           />
-          <button 
+          <button
             @click="incrementCounterBy"
             :disabled="!incrementAmount || parseInt(incrementAmount) <= 0 || isLoading"
-            class="bg-slate-900 text-white px-8 rounded-full font-bold text-sm hover:opacity-90 transition-all disabled:opacity-30 active:scale-95"
+            class="btn btn-m btn-primary shrink-0"
           >
             SEND TRANSACTION
           </button>
@@ -76,28 +77,23 @@
 
       <!-- System Status Card -->
       <div class="enterprise-card p-8 space-y-6">
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-bold text-slate-900">System Status</h3>
-          <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
-            <BaseIcon name="ShieldCheckIcon" class="w-5 h-5 text-slate-400" />
-          </div>
-        </div>
+        <h3 class="text-lg font-bold">System Status</h3>
         
         <div class="space-y-4">
-          <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
-            <span class="text-sm font-medium text-slate-600">Network Connector</span>
+          <div class="flex items-center justify-between px-4 py-3 bg-neutral-50 rounded-full border border-neutral-100">
+            <span class="text-sm font-medium text-neutral-600">Network Connector</span>
             <div class="flex items-center gap-2">
-              <span class="text-sm font-bold" :class="isConnected ? 'text-green-600' : 'text-red-500'">
+              <span class="text-sm font-medium" :class="isConnected ? 'text-green-600' : 'text-red-500'">
                 {{ isConnected ? 'Operational' : 'Disconnected' }}
               </span>
               <div class="w-2 h-2 rounded-full" :class="isConnected ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-red-500'"></div>
             </div>
           </div>
           
-          <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
-            <span class="text-sm font-medium text-slate-600">Wallet Link</span>
-            <span class="text-xs font-mono text-slate-500" v-if="ssoAccount">0x...{{ ssoAccount?.slice(-4) }}</span>
-            <span class="text-xs font-bold text-slate-400" v-else>Not Linked</span>
+          <div class="flex items-center justify-between px-4 py-3 bg-neutral-50 rounded-full border border-neutral-100">
+            <span class="text-sm font-medium text-neutral-600">Wallet Link</span>
+            <span class="text-xs font-mono text-neutral-600" v-if="ssoAccount">0x...{{ ssoAccount?.slice(-4) }}</span>
+            <span class="text-xs font-medium text-neutral-600" v-else>Not Linked</span>
           </div>
         </div>
       </div>
@@ -105,21 +101,21 @@
 
     <!-- Activity -->
     <div class="enterprise-card overflow-hidden">
-      <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
-        <h4 class="text-lg font-bold text-slate-900">Latest Activity</h4>
-        <span class="text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">{{ transactions.length }} total</span>
+      <div class="px-8 py-6 border-b border-neutral-100 flex items-center justify-between">
+        <h4 class="text-lg font-bold">Latest Activity</h4>
+        <span class="text-xs font-medium text-neutral-600 bg-neutral-50 px-3 py-1 rounded-full border border-neutral-100">{{ transactions.length }} total</span>
       </div>
       
-      <div class="divide-y divide-slate-50 max-h-[400px] overflow-y-auto">
+      <div class="divide-y divide-neutral-50 max-h-[400px] overflow-y-auto">
         <div v-if="transactions.length === 0" class="px-8 py-16 text-center">
-          <BaseIcon name="InboxIcon" class="w-12 h-12 text-slate-200 mx-auto mb-4" />
-          <p class="text-slate-400 text-sm font-medium">No recent transactions</p>
+          <BaseIcon name="InboxIcon" class="w-12 h-12 text-neutral-600 mx-auto mb-4" />
+          <p class="text-neutral-600 text-sm font-medium">No recent transactions</p>
         </div>
         
         <div 
           v-for="tx in transactions" 
           :key="tx.id" 
-          class="px-8 py-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors"
+          class="px-8 py-5 flex items-center justify-between hover:bg-neutral-50/50 transition-colors"
         >
           <div class="flex items-center gap-4">
             <div 
@@ -135,15 +131,16 @@
               <BaseIcon v-else name="XMarkIcon" class="w-5 h-5" />
             </div>
             <div>
-              <h5 class="text-sm font-bold text-slate-900">{{ tx.function }}</h5>
-              <p class="text-xs font-mono text-slate-400 mt-1">{{ tx.hash }}</p>
+              <h5 class="text-sm font-medium">{{ tx.function }}</h5>
+              <p class="text-xs font-mono text-neutral-600 mt-1">{{ tx.hash }}</p>
             </div>
           </div>
-          <p class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{{ tx.timestamp }}</p>
+          <p class="text-xs font-medium text-neutral-600 uppercase tracking-widest">{{ tx.timestamp }}</p>
         </div>
       </div>
     </div>
   </div>
+
 </template>
 
 <script setup lang="ts">
@@ -181,11 +178,11 @@ const copied = ref(false);
 const copyContractAddress = () => {
   if (currentContractAddress.value) {
     void navigator.clipboard.writeText(currentContractAddress.value);
-    copied.value = true;
-    setTimeout(() => {
-      copied.value = false;
-    }, 2000);
   }
+  copied.value = true;
+  setTimeout(() => {
+    copied.value = false;
+  }, 2000);
 };
 
 // Transaction history
@@ -394,4 +391,5 @@ const logout = () => {
     console.error('Logout error:', error);
   }
 };
+
 </script>

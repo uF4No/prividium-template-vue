@@ -1,0 +1,46 @@
+<svg width="2000" height="2000" viewBox="0 0 2000 2000" fill="none" xmlns="http://www.w3.org/2000/svg">
+<ellipse cx="999.82" cy="999.822" rx="500" ry="800" stroke="url(#paint0_linear_2925_5244)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<ellipse cx="999.82" cy="999.822" rx="500" ry="800" transform="rotate(30 999.82 999.822)" stroke="url(#paint1_linear_2925_5244)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<ellipse cx="999.82" cy="999.821" rx="500" ry="800" transform="rotate(60 999.82 999.821)" stroke="url(#paint2_linear_2925_5244)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<ellipse cx="999.746" cy="999.821" rx="500" ry="800" transform="rotate(90 999.746 999.821)" stroke="url(#paint3_linear_2925_5244)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<ellipse cx="999.821" cy="999.82" rx="500" ry="800" transform="rotate(120 999.821 999.82)" stroke="url(#paint4_linear_2925_5244)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<ellipse cx="999.822" cy="999.82" rx="500" ry="800" transform="rotate(150 999.822 999.82)" stroke="url(#paint5_linear_2925_5244)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<defs>
+<linearGradient id="paint0_linear_2925_5244" x1="998.154" y1="1799.82" x2="1134.78" y2="211.576" gradientUnits="userSpaceOnUse">
+<stop stop-color="#DAE2F2"/>
+<stop offset="0.35" stop-color="#DAE2F2" stop-opacity="0"/>
+<stop offset="0.65" stop-color="#DAE2F2" stop-opacity="0"/>
+<stop offset="1" stop-color="#DAE2F2"/>
+</linearGradient>
+<linearGradient id="paint1_linear_2925_5244" x1="998.154" y1="1799.82" x2="1134.78" y2="211.576" gradientUnits="userSpaceOnUse">
+<stop stop-color="#DAE2F2"/>
+<stop offset="0.35" stop-color="#DAE2F2" stop-opacity="0"/>
+<stop offset="0.65" stop-color="#DAE2F2" stop-opacity="0"/>
+<stop offset="1" stop-color="#DAE2F2"/>
+</linearGradient>
+<linearGradient id="paint2_linear_2925_5244" x1="998.154" y1="1799.82" x2="1134.78" y2="211.575" gradientUnits="userSpaceOnUse">
+<stop stop-color="#DAE2F2"/>
+<stop offset="0.35" stop-color="#DAE2F2" stop-opacity="0"/>
+<stop offset="0.65" stop-color="#DAE2F2" stop-opacity="0"/>
+<stop offset="1" stop-color="#DAE2F2"/>
+</linearGradient>
+<linearGradient id="paint3_linear_2925_5244" x1="998.079" y1="1799.82" x2="1134.71" y2="211.575" gradientUnits="userSpaceOnUse">
+<stop stop-color="#DAE2F2"/>
+<stop offset="0.35" stop-color="#DAE2F2" stop-opacity="0"/>
+<stop offset="0.65" stop-color="#DAE2F2" stop-opacity="0"/>
+<stop offset="1" stop-color="#DAE2F2"/>
+</linearGradient>
+<linearGradient id="paint4_linear_2925_5244" x1="998.155" y1="1799.82" x2="1134.78" y2="211.574" gradientUnits="userSpaceOnUse">
+<stop stop-color="#DAE2F2"/>
+<stop offset="0.35" stop-color="#DAE2F2" stop-opacity="0"/>
+<stop offset="0.65" stop-color="#DAE2F2" stop-opacity="0"/>
+<stop offset="1" stop-color="#DAE2F2"/>
+</linearGradient>
+<linearGradient id="paint5_linear_2925_5244" x1="998.156" y1="1799.82" x2="1134.79" y2="211.574" gradientUnits="userSpaceOnUse">
+<stop stop-color="#DAE2F2"/>
+<stop offset="0.35" stop-color="#DAE2F2" stop-opacity="0"/>
+<stop offset="0.65" stop-color="#DAE2F2" stop-opacity="0"/>
+<stop offset="1" stop-color="#DAE2F2"/>
+</linearGradient>
+</defs>
+</svg>

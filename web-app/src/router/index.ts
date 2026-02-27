@@ -24,20 +24,8 @@ const router = createRouter({
   ]
 });
 
-router.beforeEach((to, _from, next) => {
-  const { isAuthenticated } = usePrividium();
-
-  if (to.meta.requiresAuth && !isAuthenticated.value) {
-    return next({
-      path: '/login',
-      query: { redirect: to.fullPath }
-    });
-  }
-
-  if (to.path === '/login' && isAuthenticated.value) {
-    return next('/');
-  }
-
+// TODO: TEMP - auth guard disabled for UI review
+router.beforeEach((_to, _from, next) => {
   return next();
 });
 
