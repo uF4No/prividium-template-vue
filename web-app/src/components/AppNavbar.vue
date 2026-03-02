@@ -10,6 +10,7 @@ const { account: ssoAccount } = useSsoAccount();
 const { isAuthenticated, signOut } = usePrividium();
 
 const companyName = import.meta.env.VITE_COMPANY_NAME || 'Prividium™';
+const companyIcon = import.meta.env.VITE_COMPANY_ICON || 'CubeIcon';
 
 const dropdownOpen = ref(false);
 const copied = ref(false);
@@ -49,6 +50,9 @@ onUnmounted(() => window.removeEventListener('click', closeDropdown));
   <nav class="floating-navbar">
     <div class="floating-navbar-inner">
       <div class="flex items-center gap-4 min-w-[200px]">
+        <div class="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white shadow-lg">
+          <BaseIcon :name="companyIcon" class="w-5 h-5" />
+        </div>
         <span class="text-2xl font-bold tracking-tight">{{ companyName }}</span>
       </div>
       

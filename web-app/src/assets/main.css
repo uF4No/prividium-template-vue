@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Default accent — overridden at runtime by VITE_ACCENT_COLOR via App.vue */
+:root {
+  --accent: #0C18EC;
+}
+
 @theme {
   /* Brand color scale */
   --color-brand-25: #F4F5FE;
@@ -47,8 +52,8 @@
   --color-neutral-950: #11141A;
   --color-neutral-975: #0A0C10;
 
-  /* Semantic aliases */
-  --color-accent: var(--color-brand-600);
+  /* Semantic aliases — accent is driven by VITE_ACCENT_COLOR via JS */
+  --color-accent: var(--accent);
   --color-accent-foreground: white;
 
   /* Radius */

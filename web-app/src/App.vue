@@ -3,9 +3,11 @@ import { onMounted } from 'vue';
 import AppFooter from './components/AppFooter.vue';
 import AppNavbar from './components/AppNavbar.vue';
 
+const accentColor = import.meta.env.VITE_ACCENT_COLOR || '#0C18EC';
 const companyName = import.meta.env.VITE_COMPANY_NAME || 'Prividium™';
 
 onMounted(() => {
+  document.documentElement.style.setProperty('--accent', accentColor);
   document.title = `${companyName} | Prividium`;
 });
 </script>
