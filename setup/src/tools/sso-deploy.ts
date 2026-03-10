@@ -1,6 +1,14 @@
 import { randomBytes } from 'node:crypto';
 import type { Abi, Address, Hex, Transport } from 'viem';
-import { createPublicClient, createWalletClient, defineChain, http, keccak256 } from 'viem';
+import {
+  http,
+  createPublicClient,
+  createWalletClient,
+  defineChain,
+  encodeDeployData,
+  formatEther,
+  keccak256
+} from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 import EOAKeyValidatorArtifact from '../system/contracts/EOAKeyValidator.json';
@@ -51,6 +59,10 @@ const MSA_FACTORY_READ_ABI = [
     stateMutability: 'view'
   }
 ] as const;
+
+const DEPLOYMENT_BALANCE_BUFFER_NUMERATOR = 12n;
+const DEPLOYMENT_BALANCE_BUFFER_DENOMINATOR = 10n;
+const SSO_BYTECODE_HASH_DEPLOY_ACCOUNT_GAS_RESERVE = 1_000_000n;
 
 export type SsoDeployConfig = {
   rpcUrl: string;
@@ -125,6 +137,129 @@ export async function deploySsoContracts(config: SsoDeployConfig): Promise<SsoDe
     const code = await publicClient.getBytecode({ address });
     return !!code && code !== '0x';
   }
+
+  async function assertSufficientDeployerBalance() {
+    const deploymentEstimates: Array<{ label: string; gas: bigint }> = [];
+    const gasPrice = await publicClient.getGasPrice();
+    const balance = await publicClient.getBalance({ address: account.address });
+
+    const estimateDeployment = async (
+      label: string,
+      abi: Abi,
+      bytecode: Hex,
+      args: readonly unknown[] = []
+    ) => {
+      const gas = await publicClient.estimateGas({
+        account: account.address,
+        data: encodeDeployData({
+          abi,
+          bytecode,
+          args
+        })
+      });
+
+      deploymentEstimates.push({ label, gas });
+    };
+
+    if (
+      !(
+        config.configured?.webauthnValidator && (await hasCode(config.configured.webauthnValidator))
+      )
+    ) {
+      await estimateDeployment(
+        'WebAuthnValidator',
+        WEBAUTHN_VALIDATOR_ABI,
+        WEBAUTHN_VALIDATOR_BYTECODE
+      );
+    }
+
+    if (!(config.configured?.eoaValidator && (await hasCode(config.configured.eoaValidator)))) {
+      await estimateDeployment('EOAKeyValidator', EOA_VALIDATOR_ABI, EOA_VALIDATOR_BYTECODE);
+    }
+
+    if (
+      !(config.configured?.sessionValidator && (await hasCode(config.configured.sessionValidator)))
+    ) {
+      await estimateDeployment(
+        'SessionKeyValidator',
+        SESSION_VALIDATOR_ABI,
+        SESSION_VALIDATOR_BYTECODE
+      );
+    }
+
+    const webauthnValidatorAddress =
+      config.configured?.webauthnValidator && (await hasCode(config.configured.webauthnValidator))
+        ? config.configured.webauthnValidator
+        : account.address;
+    const eoaValidatorAddress =
+      config.configured?.eoaValidator && (await hasCode(config.configured.eoaValidator))
+        ? config.configured.eoaValidator
+        : account.address;
+
+    if (
+      !(config.configured?.guardianExecutor && (await hasCode(config.configured.guardianExecutor)))
+    ) {
+      await estimateDeployment(
+        'GuardianExecutor',
+        GUARDIAN_EXECUTOR_ABI,
+        GUARDIAN_EXECUTOR_BYTECODE,
+        [webauthnValidatorAddress, eoaValidatorAddress]
+      );
+    }
+
+    const configuredAccountImplementation =
+      config.configured?.accountImplementation &&
+      (await hasCode(config.configured.accountImplementation))
+        ? config.configured.accountImplementation
+        : undefined;
+    const configuredBeacon =
+      config.configured?.beacon && (await hasCode(config.configured.beacon))
+        ? config.configured.beacon
+        : undefined;
+
+    if (!configuredBeacon && !configuredAccountImplementation) {
+      await estimateDeployment('ModularSmartAccount', ACCOUNT_IMPL_ABI, ACCOUNT_IMPL_BYTECODE, []);
+    }
+
+    if (!configuredBeacon) {
+      const implementationAddress = configuredAccountImplementation ?? account.address;
+      await estimateDeployment(
+        'UpgradeableBeacon',
+        UPGRADEABLE_BEACON_ABI,
+        UPGRADEABLE_BEACON_BYTECODE,
+        [implementationAddress, account.address]
+      );
+    }
+
+    if (!(config.configured?.factory && (await hasCode(config.configured.factory)))) {
+      const beaconAddress = configuredBeacon ?? account.address;
+      await estimateDeployment('MSAFactory', MSA_FACTORY_ABI, MSA_FACTORY_BYTECODE, [
+        beaconAddress
+      ]);
+    }
+
+    const totalGas =
+      deploymentEstimates.reduce((sum, estimate) => sum + estimate.gas, 0n) +
+      SSO_BYTECODE_HASH_DEPLOY_ACCOUNT_GAS_RESERVE;
+    const requiredWei =
+      (totalGas * gasPrice * DEPLOYMENT_BALANCE_BUFFER_NUMERATOR) /
+      DEPLOYMENT_BALANCE_BUFFER_DENOMINATOR;
+
+    if (balance < requiredWei) {
+      throw new Error(
+        `Insufficient deployer balance for SSO setup. Address: ${account.address}. ` +
+          `Available: ${formatEther(balance)} ETH. ` +
+          `Estimated minimum required (including 20% buffer and factory deploy reserve): ${formatEther(requiredWei)} ETH. ` +
+          `Planned deployments: ${deploymentEstimates.map(({ label }) => label).join(', ') || 'factory deployAccount only'}.`
+      );
+    }
+
+    console.log(
+      `✅ Deployer balance check passed for SSO setup: ${formatEther(balance)} ETH available, ${formatEther(requiredWei)} ETH required with buffer.`
+    );
+  }
+
+  await assertSufficientDeployerBalance();
 
   async function ensureAccountImplementation(): Promise<{ address: Address; deployed: boolean }> {
     const configured = config.configured?.accountImplementation;
