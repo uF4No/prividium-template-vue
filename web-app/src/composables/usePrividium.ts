@@ -62,26 +62,32 @@ function toAppUserProfile(profile: UserProfile): AppUserProfile {
   };
 }
 
-function initializePrividium(): PrividiumChain {
+function initializePrividium(): PrividiumChain | null {
   if (!prividiumInstance) {
-    const prividiumApiBaseUrl = stripApiSuffix(import.meta.env.VITE_PRIVIDIUM_API_URL) ?? '';
-    prividiumInstance = createPrividiumChain({
-      clientId: import.meta.env.VITE_CLIENT_ID,
-      chain: prividiumSdkChain,
-      authBaseUrl: import.meta.env.VITE_PRIVIDIUM_AUTH_BASE_URL,
-      redirectUrl: `${window.location.origin}/auth-callback.html`,
-      prividiumApiBaseUrl,
-      onAuthExpiry: () => {
-        console.log('Authentication expired');
-        isAuthenticated.value = false;
-        userProfile.value = null;
+    try {
+      const prividiumApiBaseUrl = stripApiSuffix(import.meta.env.VITE_PRIVIDIUM_API_URL) ?? '';
+      prividiumInstance = createPrividiumChain({
+        clientId: import.meta.env.VITE_CLIENT_ID,
+        chain: prividiumSdkChain,
+        authBaseUrl: import.meta.env.VITE_PRIVIDIUM_AUTH_BASE_URL,
+        redirectUrl: `${window.location.origin}/auth-callback.html`,
+        prividiumApiBaseUrl,
+        onAuthExpiry: () => {
+          console.log('Authentication expired');
+          isAuthenticated.value = false;
+          userProfile.value = null;
+        }
+      });
+
+      isAuthenticated.value = prividiumInstance.isAuthorized();
+
+      if (isAuthenticated.value) {
+        void loadUserProfile();
       }
-    });
-
-    isAuthenticated.value = prividiumInstance.isAuthorized();
-
-    if (isAuthenticated.value) {
-      void loadUserProfile();
+    } catch (e) {
+      // TODO: TEMP - allow app to render without backend for UI review
+      console.warn('Prividium SDK init failed (backend not running?):', e);
+      return null;
     }
   }
   return prividiumInstance;
@@ -89,6 +95,7 @@ function initializePrividium(): PrividiumChain {
 
 async function loadUserProfile() {
   const prividium = initializePrividium();
+  if (!prividium) return;
   try {
     const sdkProfile = await prividium.fetchUser();
     console.debug('[prividium] fetchUser result', sdkProfile);
@@ -187,6 +194,7 @@ export function usePrividium() {
   const userWallets = computed(() => userProfile.value?.walletAddresses || []);
 
   async function authenticate() {
+    if (!prividium) return false;
     isAuthenticating.value = true;
     authError.value = null;
 
@@ -207,14 +215,14 @@ export function usePrividium() {
   }
 
   function signOut() {
-    prividium.unauthorize();
+    prividium?.unauthorize();
     isAuthenticated.value = false;
     userProfile.value = null;
     authError.value = null;
   }
 
   function getAuthHeaders() {
-    return prividium.getAuthHeaders();
+    return prividium?.getAuthHeaders() ?? null;
   }
 
   async function refreshUserProfile() {
@@ -223,11 +231,11 @@ export function usePrividium() {
   }
 
   function getTransport() {
-    return prividium.transport;
+    return prividium?.transport;
   }
 
   function getChain() {
-    return prividium.chain;
+    return prividium?.chain;
   }
 
   async function enableWalletToken(params: {
@@ -235,8 +243,12 @@ export function usePrividium() {
     contractAddress: `0x${string}`;
     nonce: number;
     calldata: `0x${string}`;
-  }) {
-    return prividium.authorizeTransaction({
+  }): Promise<{ message: string; activeUntil: string }> {
+    if (!prividium) {
+      throw new Error('Prividium SDK is not initialized.');
+    }
+
+    return await prividium.authorizeTransaction({
       walletAddress: params.walletAddress,
       toAddress: params.contractAddress,
       nonce: params.nonce,
@@ -245,15 +257,19 @@ export function usePrividium() {
   }
 
   async function addNetworkToWallet() {
-    return prividium.addNetworkToWallet();
+    return prividium?.addNetworkToWallet();
   }
 
   async function getWalletToken() {
-    return prividium.getWalletToken();
+    return prividium?.getWalletToken();
   }
 
-  async function getWalletRpcUrl() {
-    return prividium.getWalletRpcUrl();
+  async function getWalletRpcUrl(): Promise<string> {
+    if (!prividium) {
+      throw new Error('Prividium SDK is not initialized.');
+    }
+
+    return await prividium.getWalletRpcUrl();
   }
 
   return {

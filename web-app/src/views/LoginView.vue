@@ -227,10 +227,10 @@ const resetSetup = () => {
     <div :class="['w-full enterprise-card overflow-hidden', isAuthenticated ? 'max-w-4xl' : 'max-w-md']">
       <div class="p-8 md:p-10">
         <div class="text-center mb-10 md:mb-12">
-          <h2 :class="isAuthenticated ? 'text-4xl md:text-5xl font-bold text-slate-900 mb-3' : 'text-lg font-semibold text-slate-800 mb-2'">
+          <h2 :class="isAuthenticated ? 'text-4xl md:text-5xl font-bold mb-3' : 'text-lg font-semibold text-neutral-900 mb-2'">
             {{ isAuthenticated ? 'Get Started' : 'Secure Access' }}
           </h2>
-          <p class="text-slate-500 text-sm">
+          <p class="text-neutral-600 text-sm">
             {{
               isAuthenticated
                 ? 'Set up your secure smart wallet to deploy and link it with your Prividium profile.'
@@ -241,18 +241,18 @@ const resetSetup = () => {
 
         <!-- AUTHENTICATING STATE -->
         <div v-if="isAuthenticating" class="flex flex-col items-center py-8">
-          <div class="w-10 h-10 border-4 border-accent/10 border-t-accent rounded-full animate-spin mb-4"></div>
-          <p class="text-slate-500 text-xs font-bold uppercase tracking-widest animate-pulse">Authenticating...</p>
+          <div class="w-10 h-10 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin mb-4"></div>
+          <p class="text-neutral-600 text-xs font-bold uppercase tracking-widest animate-pulse">Authenticating...</p>
         </div>
 
         <!-- POST-AUTH PASSKEY FLOW -->
         <div v-else-if="isAuthenticated" class="space-y-4">
-          <div class="rounded-3xl border border-slate-200 bg-white px-5 py-5 md:px-6">
+          <div class="rounded-3xl border border-neutral-200 bg-white px-5 py-5 md:px-6">
             <div class="flex flex-col gap-4 md:flex-row md:items-start">
               <div class="shrink-0">
                 <div
                   v-if="passkeyStep === 'checking' || passkeyStep === 'creating'"
-                  class="w-11 h-11 rounded-full border-2 border-accent/20 border-t-accent animate-spin"
+                  class="w-11 h-11 rounded-full border-2 border-brand-100 border-t-brand-500 animate-spin"
                 ></div>
                 <div
                   v-else-if="passkeyStep === 'deploying' || passkeyStep === 'done'"
@@ -262,7 +262,7 @@ const resetSetup = () => {
                 </div>
                 <div
                   v-else
-                  class="w-11 h-11 rounded-full border border-dashed border-slate-300 text-slate-500 text-sm font-semibold flex items-center justify-center"
+                  class="w-11 h-11 rounded-full border border-dashed border-neutral-300 text-neutral-600 text-sm font-semibold flex items-center justify-center"
                 >
                   1
                 </div>
@@ -271,8 +271,8 @@ const resetSetup = () => {
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-2xl font-semibold text-slate-900 leading-tight">Security Key Setup</p>
-                    <p class="text-sm text-slate-500 mt-1">
+                    <p class="text-2xl font-semibold leading-tight">Security Key Setup</p>
+                    <p class="text-sm text-neutral-600 mt-1">
                       {{
                         passkeyStep === 'checking'
                           ? 'Validating your existing passkey.'
@@ -287,21 +287,21 @@ const resetSetup = () => {
                   <button
                     v-if="passkeyStep === 'done'"
                     @click="resetSetup"
-                    class="enterprise-button-secondary px-5 py-2.5 text-sm"
+                    class="btn btn-s btn-secondary"
                   >
                     Reset
                   </button>
                 </div>
 
-                <div class="mt-4 inline-flex items-center rounded-xl bg-slate-100 p-1">
+                <div class="mt-4 inline-flex items-center rounded-xl bg-neutral-100 p-1">
                   <button
                     @click="setupSelection = 'create'"
                     :disabled="passkeyStep !== 'idle'"
                     :class="[
                       'px-4 py-2 text-sm font-semibold rounded-lg transition',
                       setupSelection === 'create'
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-slate-500',
+                        ? 'bg-white shadow-sm'
+                        : 'text-neutral-600',
                       passkeyStep !== 'idle' ? 'opacity-60 cursor-not-allowed' : ''
                     ]"
                   >
@@ -313,8 +313,8 @@ const resetSetup = () => {
                     :class="[
                       'px-4 py-2 text-sm font-semibold rounded-lg transition',
                       setupSelection === 'existing'
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-slate-500',
+                        ? 'bg-white shadow-sm'
+                        : 'text-neutral-600',
                       passkeyStep !== 'idle' ? 'opacity-60 cursor-not-allowed' : ''
                     ]"
                   >
@@ -323,17 +323,17 @@ const resetSetup = () => {
                 </div>
 
                 <div v-if="setupSelection === 'create' && passkeyStep === 'idle'" class="mt-4">
-                  <label class="text-xs font-bold text-slate-700 uppercase tracking-wide">Username</label>
+                  <label class="text-xs font-bold text-neutral-900 uppercase tracking-wide">Username</label>
                   <input
                     v-model="passkeyUsername"
                     type="text"
                     placeholder="ex. alice"
-                    class="mt-2 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                    class="mt-2 w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-all"
                     @keyup.enter="createPasskey"
                   />
                 </div>
 
-                <p v-else-if="setupSelection === 'existing' && passkeyStep === 'idle'" class="mt-4 text-sm text-slate-500">
+                <p v-else-if="setupSelection === 'existing' && passkeyStep === 'idle'" class="mt-4 text-sm text-neutral-600">
                   Select your existing passkey to continue with the wallet already linked to your profile.
                 </p>
                 <div class="mt-5 flex md:justify-end">
@@ -341,14 +341,14 @@ const resetSetup = () => {
                   v-if="passkeyStep === 'idle'"
                   @click="setupSelection === 'create' ? createPasskey() : useExistingPasskey()"
                   :disabled="setupSelection === 'create' && !passkeyUsername"
-                    class="enterprise-button-primary w-full md:w-64 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="btn btn-m btn-primary w-full md:w-64"
                 >
                     {{ setupSelection === 'create' ? 'Create Passkey' : 'Use Existing Passkey' }}
                 </button>
                 <button
                   v-else-if="passkeyStep === 'checking' || passkeyStep === 'creating'"
                   disabled
-                    class="enterprise-button-secondary w-full md:w-64 py-3 opacity-70 cursor-not-allowed"
+                    class="btn btn-m btn-secondary w-full md:w-64 opacity-70 cursor-not-allowed"
                 >
                   Processing...
                 </button>
@@ -357,12 +357,12 @@ const resetSetup = () => {
             </div>
           </div>
 
-          <div class="rounded-3xl border border-slate-200 bg-white px-5 py-5 md:px-6">
+          <div class="rounded-3xl border border-neutral-200 bg-white px-5 py-5 md:px-6">
             <div class="flex flex-col gap-4 md:flex-row md:items-center">
               <div class="shrink-0">
                 <div
                   v-if="passkeyStep === 'deploying'"
-                  class="w-11 h-11 rounded-full border-2 border-accent/20 border-t-accent animate-spin"
+                  class="w-11 h-11 rounded-full border-2 border-brand-100 border-t-brand-500 animate-spin"
                 ></div>
                 <div
                   v-else-if="passkeyStep === 'done' && setupMode === 'create'"
@@ -372,21 +372,21 @@ const resetSetup = () => {
                 </div>
                 <div
                   v-else-if="passkeyStep === 'done' && setupMode === 'existing'"
-                  class="w-11 h-11 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-lg font-semibold"
+                  class="w-11 h-11 rounded-full bg-neutral-100 text-neutral-600 flex items-center justify-center text-lg font-semibold"
                 >
                   -
                 </div>
                 <div
                   v-else
-                  class="w-11 h-11 rounded-full border border-dashed border-slate-300 text-slate-500 text-sm font-semibold flex items-center justify-center"
+                  class="w-11 h-11 rounded-full border border-dashed border-neutral-300 text-neutral-600 text-sm font-semibold flex items-center justify-center"
                 >
                   2
                 </div>
               </div>
 
               <div class="min-w-0 flex-1">
-                <p class="text-2xl font-semibold text-slate-900 leading-tight">Deploy & Link Smart Wallet</p>
-                <p class="text-sm text-slate-500 mt-1">
+                <p class="text-2xl font-semibold leading-tight">Deploy & Link Smart Wallet</p>
+                <p class="text-sm text-neutral-600 mt-1">
                   {{
                     passkeyStep === 'deploying'
                       ? 'Deploying wallet, funding it, and linking it to your Prividium profile.'
@@ -422,7 +422,7 @@ const resetSetup = () => {
               <div class="flex gap-2">
                 <button
                   @click="continueToApp"
-                  class="enterprise-button-primary px-5 py-3"
+                  class="btn btn-m btn-primary"
                 >
                   Continue to App
                 </button>
@@ -435,7 +435,7 @@ const resetSetup = () => {
         <div v-else class="space-y-6">
           <button 
             @click="login"
-            class="enterprise-button-primary w-full py-4 text-base"
+            class="btn btn-l btn-primary w-full"
           >
             Authenticate via Prividium
           </button>
@@ -447,8 +447,8 @@ const resetSetup = () => {
         </div>
       </div>
       
-      <div class="bg-slate-50/50 px-8 py-5 flex justify-center items-center gap-2 border-t border-slate-100">
-        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Powered by ZKsync Prividium™</p>
+      <div class="bg-neutral-50/50 px-8 py-5 flex justify-center items-center gap-2 border-t border-neutral-100">
+        <p class="text-xs text-neutral-600 font-medium tracking-wide">Powered by Prividium™</p>
       </div>
     </div>
   </div>

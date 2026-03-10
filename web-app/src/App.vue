@@ -2,8 +2,8 @@
 import { onMounted } from 'vue';
 import AppFooter from './components/AppFooter.vue';
 import AppNavbar from './components/AppNavbar.vue';
-const accentColor = import.meta.env.VITE_ACCENT_COLOR || '#2563eb';
 
+const accentColor = import.meta.env.VITE_ACCENT_COLOR || '#0C18EC';
 const companyName = import.meta.env.VITE_COMPANY_NAME || 'Prividium™';
 
 onMounted(() => {
@@ -13,20 +13,27 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col font-sans">
+  <div class="min-h-screen flex flex-col font-sans relative overflow-hidden">
+    <!-- Rotating background globes -->
+    <div class="bg-globes">
+      <img
+        src="/illustrations/globe-1.svg"
+        alt=""
+        class="globe globe-1"
+      />
+      <img
+        src="/illustrations/globe-2.svg"
+        alt=""
+        class="globe globe-2"
+      />
+    </div>
+
     <AppNavbar />
-    
-    <main class="flex-grow container mx-auto px-4 py-12 max-w-7xl">
+
+    <main class="flex-grow container mx-auto px-4 py-12 max-w-7xl relative z-10">
       <RouterView />
     </main>
 
     <AppFooter />
   </div>
 </template>
-
-<style>
-/* Global styles move to assets/main.css but we can keep some here if needed */
-:root {
-  --accent: #2563eb;
-}
-</style>
