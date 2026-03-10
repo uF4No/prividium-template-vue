@@ -164,6 +164,11 @@ export function saveAccountAddress(accountAddress: Address) {
   localStorage.setItem(STORAGE_KEY_ACCOUNT, accountAddress);
 }
 
+export function clearStoredSsoState() {
+  localStorage.removeItem(STORAGE_KEY_PASSKEY);
+  localStorage.removeItem(STORAGE_KEY_ACCOUNT);
+}
+
 // Reset passkey
 export function handleResetPasskey() {
   if (
@@ -171,8 +176,7 @@ export function handleResetPasskey() {
       'Are you sure you want to reset your passkey? You will need to create a new one and deploy a new account.'
     )
   ) {
-    localStorage.removeItem(STORAGE_KEY_PASSKEY);
-    localStorage.removeItem(STORAGE_KEY_ACCOUNT);
+    clearStoredSsoState();
     location.reload();
   }
 }
