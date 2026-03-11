@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  configureSmartAccountPermissions,
-  type SmartAccountPermissionsDeps
+  type SmartAccountPermissionsDeps,
+  configureSmartAccountPermissions
 } from '@/utils/prividium/smart-account-permissions';
 
 const CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000001';
@@ -42,13 +42,17 @@ describe('configureSmartAccountPermissions', () => {
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ contractAddress: CONTRACT_ADDRESS }), { status: 200 })
       )
-      .mockResolvedValueOnce(new Response('already exists', { status: 409, statusText: 'Conflict' }))
-      .mockResolvedValueOnce(new Response('already exists', { status: 409, statusText: 'Conflict' }))
+      .mockResolvedValueOnce(
+        new Response('already exists', { status: 409, statusText: 'Conflict' })
+      )
+      .mockResolvedValueOnce(
+        new Response('already exists', { status: 409, statusText: 'Conflict' })
+      )
       .mockResolvedValueOnce(new Response('{}', { status: 200 }));
 
-    await expect(configureSmartAccountPermissions(CONTRACT_ADDRESS, createDeps(fetchFn))).resolves.toBe(
-      undefined
-    );
+    await expect(
+      configureSmartAccountPermissions(CONTRACT_ADDRESS, createDeps(fetchFn))
+    ).resolves.toBe(undefined);
 
     expect(fetchFn).toHaveBeenCalledTimes(4);
   });

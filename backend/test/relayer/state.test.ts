@@ -1,11 +1,14 @@
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
 import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 type StateModule = typeof import('@/utils/relayer/state');
 
-async function importStateModule(paths: { pending: string; finalized: string }): Promise<StateModule> {
+async function importStateModule(paths: {
+  pending: string;
+  finalized: string;
+}): Promise<StateModule> {
   vi.resetModules();
   vi.doMock('@/utils/constants', () => ({
     PENDING_TXS_FILE: paths.pending,

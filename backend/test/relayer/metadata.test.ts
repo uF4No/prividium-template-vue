@@ -1,3 +1,4 @@
+import type { ReceiptWithL2ToL1 } from '@matterlabs/zksync-js/core/rpc/types';
 import { encodeAbiParameters, encodeFunctionData } from 'viem';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -68,7 +69,7 @@ describe('extractTxMetadata', () => {
           }
         ])
       ]
-    } as any;
+    } as unknown as ReceiptWithL2ToL1;
 
     await expect(extractTxMetadata(receipt)).resolves.toEqual({ action: 'Deposit', amount: '1' });
   });
@@ -94,7 +95,7 @@ describe('extractTxMetadata', () => {
           }
         ])
       ]
-    } as any;
+    } as unknown as ReceiptWithL2ToL1;
 
     await expect(extractTxMetadata(receipt)).resolves.toEqual({
       action: 'Withdrawal',
@@ -111,7 +112,7 @@ describe('extractTxMetadata', () => {
           data: '0x'
         }
       ]
-    } as any;
+    } as unknown as ReceiptWithL2ToL1;
 
     await expect(extractTxMetadata(receipt)).resolves.toEqual({ action: 'Unknown', amount: '0' });
   });

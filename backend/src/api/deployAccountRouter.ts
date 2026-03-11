@@ -29,9 +29,7 @@ deployAccountRegistry.registerPath({
   }
 });
 
-export function createDeployAccountRouter(
-  deps: Partial<DeployAccountRouterDeps> = {}
-): Router {
+export function createDeployAccountRouter(deps: Partial<DeployAccountRouterDeps> = {}): Router {
   const deploySmartAccountFn = deps.deploySmartAccount ?? deploySmartAccount;
   const router = express.Router();
 

@@ -2,12 +2,17 @@ import express from 'express';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createDeployAccountRouter } from '@/api/deployAccountRouter';
+import { type DeployAccountRouterDeps, createDeployAccountRouter } from '@/api/deployAccountRouter';
 
 function createTestApp(deploySmartAccount: ReturnType<typeof vi.fn>) {
   const app = express();
   app.use(express.json());
-  app.use('/deploy-account', createDeployAccountRouter({ deploySmartAccount: deploySmartAccount as any }));
+  app.use(
+    '/deploy-account',
+    createDeployAccountRouter({
+      deploySmartAccount: deploySmartAccount as DeployAccountRouterDeps['deploySmartAccount']
+    })
+  );
   return app;
 }
 
@@ -32,12 +37,14 @@ describe('deployAccountRouter', () => {
     });
     const app = createTestApp(deploySmartAccount);
 
-    const response = await request(app).post('/deploy-account').send({
-      userId: 'user-id',
-      originDomain: 'http://localhost:3002',
-      credentialId: 'credential-id-12345',
-      credentialPublicKey: [1, 2, 3]
-    });
+    const response = await request(app)
+      .post('/deploy-account')
+      .send({
+        userId: 'user-id',
+        originDomain: 'http://localhost:3002',
+        credentialId: 'credential-id-12345',
+        credentialPublicKey: [1, 2, 3]
+      });
 
     expect(response.status).toBe(500);
     expect(response.body.success).toBe(false);
@@ -53,12 +60,14 @@ describe('deployAccountRouter', () => {
     });
     const app = createTestApp(deploySmartAccount);
 
-    const response = await request(app).post('/deploy-account').send({
-      userId: 'user-id',
-      originDomain: 'http://localhost:3002',
-      credentialId: 'credential-id-12345',
-      credentialPublicKey: [1, 2, 3]
-    });
+    const response = await request(app)
+      .post('/deploy-account')
+      .send({
+        userId: 'user-id',
+        originDomain: 'http://localhost:3002',
+        credentialId: 'credential-id-12345',
+        credentialPublicKey: [1, 2, 3]
+      });
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);

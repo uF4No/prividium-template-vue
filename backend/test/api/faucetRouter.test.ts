@@ -2,12 +2,17 @@ import express from 'express';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createFaucetRouter } from '@/api/faucetRouter';
+import { type FaucetRouterDeps, createFaucetRouter } from '@/api/faucetRouter';
 
 function createTestApp(sendFaucetFunds: ReturnType<typeof vi.fn>) {
   const app = express();
   app.use(express.json());
-  app.use('/faucet', createFaucetRouter({ sendFaucetFunds: sendFaucetFunds as any }));
+  app.use(
+    '/faucet',
+    createFaucetRouter({
+      sendFaucetFunds: sendFaucetFunds as FaucetRouterDeps['sendFaucetFunds']
+    })
+  );
   return app;
 }
 

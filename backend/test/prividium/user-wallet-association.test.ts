@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  associateWalletWithUser,
-  type AssociateWalletDeps
+  type AssociateWalletDeps,
+  associateWalletWithUser
 } from '@/utils/prividium/user-wallet-association';
 
 const USER_ID = 'user_123';

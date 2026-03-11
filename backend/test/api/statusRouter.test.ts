@@ -2,16 +2,19 @@ import express from 'express';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createStatusRouter } from '@/api/statusRouter';
+import { type StatusRouterDeps, createStatusRouter } from '@/api/statusRouter';
 
-function createTestApp(loadPendingTxs: ReturnType<typeof vi.fn>, loadFinalizedTxs: ReturnType<typeof vi.fn>) {
+function createTestApp(
+  loadPendingTxs: ReturnType<typeof vi.fn>,
+  loadFinalizedTxs: ReturnType<typeof vi.fn>
+) {
   const app = express();
   app.use(express.json());
   app.use(
     '/status',
     createStatusRouter({
-      loadPendingTxs: loadPendingTxs as any,
-      loadFinalizedTxs: loadFinalizedTxs as any
+      loadPendingTxs: loadPendingTxs as StatusRouterDeps['loadPendingTxs'],
+      loadFinalizedTxs: loadFinalizedTxs as StatusRouterDeps['loadFinalizedTxs']
     })
   );
   return app;

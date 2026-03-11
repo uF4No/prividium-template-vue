@@ -2,21 +2,26 @@ import express from 'express';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createInteropTxRouter } from '@/api/interopTxRouter';
+import { type InteropTxRouterDeps, createInteropTxRouter } from '@/api/interopTxRouter';
 
-function createTestApp(deps: {
-  getReceiptWithL2ToL1?: ReturnType<typeof vi.fn>;
-  extractTxMetadata?: ReturnType<typeof vi.fn>;
-  addPendingTx?: ReturnType<typeof vi.fn>;
-} = {}) {
+function createTestApp(
+  deps: {
+    getReceiptWithL2ToL1?: InteropTxRouterDeps['getReceiptWithL2ToL1'];
+    extractTxMetadata?: InteropTxRouterDeps['extractTxMetadata'];
+    addPendingTx?: InteropTxRouterDeps['addPendingTx'];
+  } = {}
+) {
   const app = express();
   app.use(express.json());
   app.use(
     '/new-l1-interop-tx',
     createInteropTxRouter({
-      getReceiptWithL2ToL1: (deps.getReceiptWithL2ToL1 ?? vi.fn()) as any,
-      extractTxMetadata: (deps.extractTxMetadata ?? vi.fn()) as any,
-      addPendingTx: (deps.addPendingTx ?? vi.fn()) as any
+      getReceiptWithL2ToL1:
+        deps.getReceiptWithL2ToL1 ??
+        (vi.fn() as unknown as InteropTxRouterDeps['getReceiptWithL2ToL1']),
+      extractTxMetadata:
+        deps.extractTxMetadata ?? (vi.fn() as unknown as InteropTxRouterDeps['extractTxMetadata']),
+      addPendingTx: deps.addPendingTx ?? (vi.fn() as unknown as InteropTxRouterDeps['addPendingTx'])
     })
   );
   return app;
@@ -60,7 +65,11 @@ describe('interopTxRouter', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(addPendingTx).toHaveBeenCalledWith(txHash, { action: 'Deposit', amount: '1.0' }, accountAddress);
+    expect(addPendingTx).toHaveBeenCalledWith(
+      txHash,
+      { action: 'Deposit', amount: '1.0' },
+      accountAddress
+    );
   });
 
   it('returns 400 when receipt fetching fails', async () => {
