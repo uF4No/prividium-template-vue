@@ -63,6 +63,9 @@ const MSA_FACTORY_READ_ABI = [
 const DEPLOYMENT_BALANCE_BUFFER_NUMERATOR = 12n;
 const DEPLOYMENT_BALANCE_BUFFER_DENOMINATOR = 10n;
 const SSO_BYTECODE_HASH_DEPLOY_ACCOUNT_GAS_RESERVE = 1_000_000n;
+const DEPLOYMENT_GAS_FALLBACK_BASE = 200_000n;
+const DEPLOYMENT_GAS_FALLBACK_BYTECODE_COST = 220n;
+const DEPLOYMENT_GAS_FALLBACK_INITDATA_COST = 16n;
 
 export type SsoDeployConfig = {
   rpcUrl: string;
@@ -149,14 +152,32 @@ export async function deploySsoContracts(config: SsoDeployConfig): Promise<SsoDe
       bytecode: Hex,
       args: readonly unknown[] = []
     ) => {
-      const gas = await publicClient.estimateGas({
-        account: account.address,
-        data: encodeDeployData({
-          abi,
-          bytecode,
-          args
-        })
+      const deploymentData = encodeDeployData({
+        abi,
+        bytecode,
+        args
       });
+      let gas: bigint;
+
+      try {
+        gas = await publicClient.estimateGas({
+          account: account.address,
+          data: deploymentData
+        });
+      } catch (error) {
+        const bytecodeBytes = BigInt((bytecode.length - 2) / 2);
+        const deploymentDataBytes = BigInt((deploymentData.length - 2) / 2);
+
+        gas =
+          DEPLOYMENT_GAS_FALLBACK_BASE +
+          bytecodeBytes * DEPLOYMENT_GAS_FALLBACK_BYTECODE_COST +
+          deploymentDataBytes * DEPLOYMENT_GAS_FALLBACK_INITDATA_COST;
+
+        console.warn(
+          `⚠️  Gas estimation reverted for ${label}; using conservative fallback estimate of ${gas.toString()} gas.`
+        );
+        console.warn(error);
+      }
 
       deploymentEstimates.push({ label, gas });
     };
