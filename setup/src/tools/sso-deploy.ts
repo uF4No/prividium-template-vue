@@ -146,37 +146,52 @@ export async function deploySsoContracts(config: SsoDeployConfig): Promise<SsoDe
     const gasPrice = await publicClient.getGasPrice();
     const balance = await publicClient.getBalance({ address: account.address });
 
+    const createFallbackGasEstimate = (bytecode: Hex, deploymentData: Hex) => {
+      const bytecodeBytes = BigInt((bytecode.length - 2) / 2);
+      const deploymentDataBytes = BigInt((deploymentData.length - 2) / 2);
+
+      return (
+        DEPLOYMENT_GAS_FALLBACK_BASE +
+        bytecodeBytes * DEPLOYMENT_GAS_FALLBACK_BYTECODE_COST +
+        deploymentDataBytes * DEPLOYMENT_GAS_FALLBACK_INITDATA_COST
+      );
+    };
+
     const estimateDeployment = async (
       label: string,
       abi: Abi,
       bytecode: Hex,
-      args: readonly unknown[] = []
+      args: readonly unknown[] = [],
+      options?: { skipEstimateReason?: string }
     ) => {
       const deploymentData = encodeDeployData({
         abi,
         bytecode,
         args
       });
-      let gas: bigint;
+      const fallbackGas = createFallbackGasEstimate(bytecode, deploymentData);
+      let gas = fallbackGas;
 
-      try {
-        gas = await publicClient.estimateGas({
-          account: account.address,
-          data: deploymentData
-        });
-      } catch (error) {
-        const bytecodeBytes = BigInt((bytecode.length - 2) / 2);
-        const deploymentDataBytes = BigInt((deploymentData.length - 2) / 2);
-
-        gas =
-          DEPLOYMENT_GAS_FALLBACK_BASE +
-          bytecodeBytes * DEPLOYMENT_GAS_FALLBACK_BYTECODE_COST +
-          deploymentDataBytes * DEPLOYMENT_GAS_FALLBACK_INITDATA_COST;
-
+      if (options?.skipEstimateReason) {
         console.warn(
-          `⚠️  Gas estimation reverted for ${label}; using conservative fallback estimate of ${gas.toString()} gas.`
+          `⚠️  Skipping gas estimation for ${label}: ${options.skipEstimateReason}. Using conservative fallback estimate of ${fallbackGas.toString()} gas.`
         );
-        console.warn(error);
+      } else {
+        try {
+          gas = await publicClient.estimateGas({
+            account: account.address,
+            data: deploymentData
+          });
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message.split('\n')[0]
+              : 'gas estimation reverted unexpectedly';
+
+          console.warn(
+            `⚠️  Gas estimation reverted for ${label}; using conservative fallback estimate of ${fallbackGas.toString()} gas. ${message}`
+          );
+        }
       }
 
       deploymentEstimates.push({ label, gas });
@@ -244,19 +259,30 @@ export async function deploySsoContracts(config: SsoDeployConfig): Promise<SsoDe
 
     if (!configuredBeacon) {
       const implementationAddress = configuredAccountImplementation ?? account.address;
+      const skipEstimateReason = configuredAccountImplementation
+        ? undefined
+        : 'implementation contract has not been deployed yet';
       await estimateDeployment(
         'UpgradeableBeacon',
         UPGRADEABLE_BEACON_ABI,
         UPGRADEABLE_BEACON_BYTECODE,
-        [implementationAddress, account.address]
+        [implementationAddress, account.address],
+        skipEstimateReason ? { skipEstimateReason } : undefined
       );
     }
 
     if (!(config.configured?.factory && (await hasCode(config.configured.factory)))) {
       const beaconAddress = configuredBeacon ?? account.address;
-      await estimateDeployment('MSAFactory', MSA_FACTORY_ABI, MSA_FACTORY_BYTECODE, [
-        beaconAddress
-      ]);
+      const skipEstimateReason = configuredBeacon
+        ? undefined
+        : 'beacon contract has not been deployed yet';
+      await estimateDeployment(
+        'MSAFactory',
+        MSA_FACTORY_ABI,
+        MSA_FACTORY_BYTECODE,
+        [beaconAddress],
+        skipEstimateReason ? { skipEstimateReason } : undefined
+      );
     }
 
     const totalGas =
