@@ -7,7 +7,9 @@ import {
   type Hex,
   createPublicClient,
   createWalletClient,
-  defineChain
+  defineChain,
+  encodeDeployData,
+  formatEther
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { execCmd } from './exec-cmd';
@@ -17,9 +19,13 @@ type DeployOptions = {
   privateKey: string;
   chainId: number;
   authToken?: string;
+  deploymentLabel?: string;
 };
 
 type DeployedContracts = Record<string, Address>;
+
+const DEPLOYMENT_BALANCE_BUFFER_NUMERATOR = 12n;
+const DEPLOYMENT_BALANCE_BUFFER_DENOMINATOR = 10n;
 
 export async function deployAndExtractAddress(
   contractsDir: string,
@@ -75,21 +81,67 @@ export async function deployAndExtractAddress(
 
   const publicClient = createPublicClient({ chain, transport });
   const walletClient = createWalletClient({ chain, transport, account });
+  const deploymentLabel = options.deploymentLabel ?? 'contract deployment';
 
-  const deployed: DeployedContracts = {};
-
-  for (const artifactPath of artifactPaths) {
+  const artifacts = artifactPaths.map((artifactPath) => {
     const artifactJson = JSON.parse(
       fs.readFileSync(path.join(contractsDir, artifactPath)).toString()
     ) as { abi: unknown; bytecode?: { object?: string } };
-
     const bytecode = artifactJson.bytecode?.object as Hex | undefined;
     if (!bytecode) {
       throw new Error(`Missing bytecode in artifact: ${artifactPath}`);
     }
 
-    const hash = await walletClient.deployContract({
+    return {
+      artifactPath,
       abi: artifactJson.abi as Abi,
+      bytecode
+    };
+  });
+
+  console.log(`🔎 Checking deployer balance for ${deploymentLabel}...`);
+  const gasPrice = await publicClient.getGasPrice();
+  const balance = await publicClient.getBalance({ address: account.address });
+  const gasEstimates = await Promise.all(
+    artifacts.map(async ({ artifactPath, abi, bytecode }) => {
+      const gas = await publicClient.estimateGas({
+        account: account.address,
+        data: encodeDeployData({
+          abi,
+          bytecode
+        })
+      });
+
+      return {
+        artifactPath,
+        gas
+      };
+    })
+  );
+  const requiredWei =
+    (gasEstimates.reduce((sum, estimate) => sum + estimate.gas, 0n) *
+      gasPrice *
+      DEPLOYMENT_BALANCE_BUFFER_NUMERATOR) /
+    DEPLOYMENT_BALANCE_BUFFER_DENOMINATOR;
+
+  if (balance < requiredWei) {
+    throw new Error(
+      `Insufficient deployer balance for ${deploymentLabel}. Address: ${account.address}. ` +
+        `Available: ${formatEther(balance)} ETH. ` +
+        `Estimated minimum required (including 20% buffer): ${formatEther(requiredWei)} ETH. ` +
+        `Artifacts: ${gasEstimates.map(({ artifactPath }) => path.basename(artifactPath)).join(', ')}.`
+    );
+  }
+
+  console.log(
+    `✅ Deployer balance check passed for ${deploymentLabel}: ${formatEther(balance)} ETH available, ${formatEther(requiredWei)} ETH required with buffer across ${gasEstimates.length} contract deployment(s).`
+  );
+
+  const deployed: DeployedContracts = {};
+
+  for (const { artifactPath, abi, bytecode } of artifacts) {
+    const hash = await walletClient.deployContract({
+      abi,
       bytecode
     });
 

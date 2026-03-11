@@ -15,6 +15,13 @@ import { syncEnvFromContractsConfig } from './tools/env-sync';
 import { assertPrividiumApiUp, assertZksyncOsIsUp } from './tools/service-assert';
 import { deploySsoContracts } from './tools/sso-deploy';
 
+function printAppDeploymentSummary(appContracts: Record<string, `0x${string}`>) {
+  console.log('\nApp deployment summary:');
+  for (const [contractName, contractAddress] of Object.entries(appContracts)) {
+    console.log(`  ${contractName}: ${contractAddress}`);
+  }
+}
+
 async function main() {
   intro('Starting Prividium setup...');
 
@@ -216,6 +223,7 @@ async function main() {
     `  Factory: ${ssoContracts.factory} (${ssoContracts.deployed.factory ? 'deployed' : 'existing'})`
   );
   console.log(`  Account bytecode hash: ${ssoContracts.ssoBytecodeHash}`);
+  printAppDeploymentSummary(appContracts);
 
   outro(
     'Setup complete! 🎉\n\nYou must now run both the backend and web app in separate terminals:\n\n1. Backend: pnpm dev:backend\n2. Web App: pnpm dev'

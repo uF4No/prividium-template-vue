@@ -12,6 +12,13 @@ import { createAdminSession } from './tools/create-admin-client';
 import { syncEnvFromContractsConfig } from './tools/env-sync';
 import { assertPrividiumApiUp, assertZksyncOsIsUp } from './tools/service-assert';
 
+function printAppDeploymentSummary(appContracts: Record<string, `0x${string}`>) {
+  console.log('\nApp deployment summary:');
+  for (const [contractName, contractAddress] of Object.entries(appContracts)) {
+    console.log(`  ${contractName}: ${contractAddress}`);
+  }
+}
+
 async function main() {
   intro('Deploying app contracts...');
 
@@ -85,6 +92,7 @@ async function main() {
     contractsConfigPath
   });
 
+  printAppDeploymentSummary(appContracts);
   outro('App contracts setup complete.');
 }
 
