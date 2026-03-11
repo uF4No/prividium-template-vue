@@ -391,5 +391,4 @@ const logout = () => {
     console.error('Logout error:', error);
   }
 };
-
 </script>

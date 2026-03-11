@@ -3,9 +3,9 @@ import { resolve } from 'node:path';
 import { toFunctionSelector } from 'viem';
 
 import type { Hex } from 'viem';
+import { unknown } from 'zod/v4';
 import { getPrividiumAuthToken } from '../client';
 import { env } from '../envConfig';
-import { unknown } from 'zod/v4';
 
 type AbiItem = {
   type?: string;
@@ -35,7 +35,11 @@ function buildApiUrl(path: string) {
   return `${base}${normalizedPath}`;
 }
 
-function getModularSmartAccountArtifact(): { abi: unknown[]; functions: readonly AbiFunction[], hasReceive: boolean } {
+function getModularSmartAccountArtifact(): {
+  abi: unknown[];
+  functions: readonly AbiFunction[];
+  hasReceive: boolean;
+} {
   const candidates = [
     resolve(process.cwd(), 'setup/src/system/contracts/ModularSmartAccount.json'),
     resolve(__dirname, '../../../../setup/src/system/contracts/ModularSmartAccount.json')
@@ -65,7 +69,9 @@ function getModularSmartAccountArtifact(): { abi: unknown[]; functions: readonly
       typeof (item as { stateMutability?: unknown }).stateMutability === 'string'
   );
 
-  const hasReceive = abi.some((u: unknown) => typeof u === 'object' && u !== null && 'type' in u && u.type === 'receive');
+  const hasReceive = abi.some(
+    (u: unknown) => typeof u === 'object' && u !== null && 'type' in u && u.type === 'receive'
+  );
 
   return { abi, functions, hasReceive };
 }
@@ -165,7 +171,6 @@ export async function configureSmartAccountPermissions(contractAddress: Hex) {
   const targetAddress = (contract?.contractAddress || contractAddress) as Hex;
   const { functions, hasReceive } = getModularSmartAccountArtifact();
 
-
   if (hasReceive) {
     await fetch(buildApiUrl('/contract-permissions/'), {
       method: 'POST',
@@ -184,7 +189,6 @@ export async function configureSmartAccountPermissions(contractAddress: Hex) {
       })
     });
   }
-
 
   for (const abiItem of functions) {
     const accessType =

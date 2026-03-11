@@ -2,55 +2,55 @@
 
 /* Default accent — overridden at runtime by VITE_ACCENT_COLOR via App.vue */
 :root {
-  --accent: #0C18EC;
+  --accent: #0c18ec;
 }
 
 @theme {
   /* Brand color scale */
-  --color-brand-25: #F4F5FE;
-  --color-brand-50: #E8EBFD;
-  --color-brand-100: #D5D9FB;
-  --color-brand-200: #B5BCF8;
-  --color-brand-300: #919CF4;
-  --color-brand-400: #6B78EF;
-  --color-brand-500: #3A4AE9;
-  --color-brand-600: #0C18EC;
-  --color-brand-700: #0914C4;
+  --color-brand-25: #f4f5fe;
+  --color-brand-50: #e8ebfd;
+  --color-brand-100: #d5d9fb;
+  --color-brand-200: #b5bcf8;
+  --color-brand-300: #919cf4;
+  --color-brand-400: #6b78ef;
+  --color-brand-500: #3a4ae9;
+  --color-brand-600: #0c18ec;
+  --color-brand-700: #0914c4;
   --color-brand-800: #061099;
-  --color-brand-900: #040B6E;
+  --color-brand-900: #040b6e;
   --color-brand-950: #020640;
   --color-brand-975: #010318;
 
   /* Secondary color scale */
-  --color-secondary-25: #F2F7FC;
-  --color-secondary-50: #EAF1F9;
-  --color-secondary-100: #DAE2F2;
-  --color-secondary-200: #BBCBE5;
-  --color-secondary-300: #869ECA;
-  --color-secondary-400: #657EB8;
-  --color-secondary-500: #3D5499;
-  --color-secondary-600: #2D408B;
+  --color-secondary-25: #f2f7fc;
+  --color-secondary-50: #eaf1f9;
+  --color-secondary-100: #dae2f2;
+  --color-secondary-200: #bbcbe5;
+  --color-secondary-300: #869eca;
+  --color-secondary-400: #657eb8;
+  --color-secondary-500: #3d5499;
+  --color-secondary-600: #2d408b;
   --color-secondary-700: #182875;
-  --color-secondary-800: #101F6A;
+  --color-secondary-800: #101f6a;
   --color-secondary-900: #081142;
   --color-secondary-950: #020519;
-  --color-secondary-975: #01030F;
+  --color-secondary-975: #01030f;
 
   /* Neutral color scale */
-  --color-neutral-25: #FAFBFC;
-  --color-neutral-50: #F7F9FC;
-  --color-neutral-75: #EFF2F7;
-  --color-neutral-100: #E8ECF2;
-  --color-neutral-200: #DADDE5;
-  --color-neutral-300: #BEC2CC;
-  --color-neutral-400: #A1A7B3;
-  --color-neutral-500: #858C99;
-  --color-neutral-600: #6C7380;
-  --color-neutral-700: #555A66;
-  --color-neutral-800: #3D424D;
-  --color-neutral-900: #262B33;
-  --color-neutral-950: #11141A;
-  --color-neutral-975: #0A0C10;
+  --color-neutral-25: #fafbfc;
+  --color-neutral-50: #f7f9fc;
+  --color-neutral-75: #eff2f7;
+  --color-neutral-100: #e8ecf2;
+  --color-neutral-200: #dadde5;
+  --color-neutral-300: #bec2cc;
+  --color-neutral-400: #a1a7b3;
+  --color-neutral-500: #858c99;
+  --color-neutral-600: #6c7380;
+  --color-neutral-700: #555a66;
+  --color-neutral-800: #3d424d;
+  --color-neutral-900: #262b33;
+  --color-neutral-950: #11141a;
+  --color-neutral-975: #0a0c10;
 
   /* Semantic aliases — accent is driven by VITE_ACCENT_COLOR via JS */
   --color-accent: var(--accent);
@@ -62,13 +62,16 @@
 
   /* Shadow */
   --shadow-enterprise: 0 12px 12px rgba(10, 26, 102, 0.015), 0 24px 32px rgba(10, 26, 102, 0.015);
-
 }
 
 body {
   color: var(--color-neutral-900);
-  background-color: #E8ECF2;
-  background-image: radial-gradient(600px circle at 0 0, rgba(255, 243, 224, 0.8) 0%, transparent 100%);
+  background-color: #e8ecf2;
+  background-image: radial-gradient(
+    600px circle at 0 0,
+    rgba(255, 243, 224, 0.8) 0%,
+    transparent 100%
+  );
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   letter-spacing: -0.01em;
 }
@@ -102,13 +105,21 @@ body {
 }
 
 @keyframes rotate-left {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(-360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
 }
 
 @keyframes rotate-right {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 #app {
