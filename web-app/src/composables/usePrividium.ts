@@ -1,5 +1,6 @@
 import { type PrividiumChain, type UserProfile, createPrividiumChain } from 'prividium';
 import { computed, ref } from 'vue';
+import { clearStoredSsoState } from '../utils/sso/passkeys';
 
 const stripApiSuffix = (url?: string) => {
   const base = url?.replace(/\/$/, '');
@@ -215,6 +216,7 @@ export function usePrividium() {
   }
 
   function signOut() {
+    clearStoredSsoState();
     prividium?.unauthorize();
     isAuthenticated.value = false;
     userProfile.value = null;

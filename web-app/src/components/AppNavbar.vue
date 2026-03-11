@@ -27,10 +27,11 @@ const copyAddress = () => {
   }
 };
 
-const logout = () => {
+const logout = async () => {
   try {
     signOut();
-    void router.push('/login');
+    dropdownOpen.value = false;
+    await router.replace('/login');
   } catch (error) {
     console.error('Logout error:', error);
   }
