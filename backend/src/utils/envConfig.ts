@@ -1,9 +1,7 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
-dotenv.config();
-
-const envSchema = z.object({
+export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
   HOST: z.string().min(1).default('localhost'),
@@ -83,16 +81,35 @@ const envSchema = z.object({
   FINALIZATION_WAIT: z.coerce.number().int().positive().default(900000)
 });
 
-const parsedEnv = envSchema.safeParse(process.env);
+type ParsedEnv = z.infer<typeof envSchema>;
 
-if (!parsedEnv.success) {
-  console.error('❌ Invalid environment variables:', parsedEnv.error.format());
-  throw new Error('Invalid environment variables');
+export function parseEnv(rawEnv: NodeJS.ProcessEnv): ParsedEnv {
+  const parsedEnv = envSchema.safeParse(rawEnv);
+  if (!parsedEnv.success) {
+    console.error('❌ Invalid environment variables:', parsedEnv.error.format());
+    throw new Error('Invalid environment variables');
+  }
+
+  return parsedEnv.data;
 }
 
-export const env = {
-  ...parsedEnv.data,
-  isDevelopment: parsedEnv.data.NODE_ENV === 'development',
-  isProduction: parsedEnv.data.NODE_ENV === 'production',
-  isTest: parsedEnv.data.NODE_ENV === 'test'
-};
+function buildEnvFlags(parsedEnv: ParsedEnv) {
+  return {
+    ...parsedEnv,
+    isDevelopment: parsedEnv.NODE_ENV === 'development',
+    isProduction: parsedEnv.NODE_ENV === 'production',
+    isTest: parsedEnv.NODE_ENV === 'test'
+  };
+}
+
+export type AppEnv = ReturnType<typeof buildEnvFlags>;
+
+export function loadEnv(options?: { loadDotenv?: boolean; env?: NodeJS.ProcessEnv }): AppEnv {
+  if (options?.loadDotenv !== false) {
+    dotenv.config();
+  }
+
+  return buildEnvFlags(parseEnv(options?.env ?? process.env));
+}
+
+export const env = loadEnv();

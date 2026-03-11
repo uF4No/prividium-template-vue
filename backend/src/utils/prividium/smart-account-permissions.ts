@@ -29,8 +29,8 @@ type ContractRecord = {
   contractAddress: string;
 };
 
-function buildApiUrl(path: string) {
-  const base = env.PRIVIDIUM_API_URL.replace(/\/+$/, '');
+function buildApiUrl(path: string, apiBaseUrl: string) {
+  const base = apiBaseUrl.replace(/\/+$/, '');
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${base}${normalizedPath}`;
 }
@@ -119,11 +119,12 @@ function formatFunctionSignatureForApi(abiItem: AbiFunction): string {
 
 async function ensureContractRegistered(
   token: string,
-  contractAddress: Hex
+  contractAddress: Hex,
+  deps: SmartAccountPermissionsDeps
 ): Promise<ContractRecord | null> {
-  const { abi } = getModularSmartAccountArtifact();
+  const { abi } = deps.getModularSmartAccountArtifact();
 
-  const createResponse = await fetch(buildApiUrl('/contracts/'), {
+  const createResponse = await deps.fetchFn(buildApiUrl('/contracts/', deps.apiBaseUrl), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -144,8 +145,8 @@ async function ensureContractRegistered(
     return (await createResponse.json()) as ContractRecord;
   }
 
-  const existingResponse = await fetch(
-    buildApiUrl(`/contracts/${encodeURIComponent(contractAddress)}`),
+  const existingResponse = await deps.fetchFn(
+    buildApiUrl(`/contracts/${encodeURIComponent(contractAddress)}`, deps.apiBaseUrl),
     {
       method: 'GET',
       headers: {
@@ -165,14 +166,37 @@ async function ensureContractRegistered(
   );
 }
 
-export async function configureSmartAccountPermissions(contractAddress: Hex) {
-  const token = await getPrividiumAuthToken();
-  const contract = await ensureContractRegistered(token, contractAddress);
+export type SmartAccountPermissionsDeps = {
+  getPrividiumAuthToken: typeof getPrividiumAuthToken;
+  fetchFn: typeof fetch;
+  getModularSmartAccountArtifact: typeof getModularSmartAccountArtifact;
+  apiBaseUrl: string;
+};
+
+function getSmartAccountPermissionsDeps(
+  deps: Partial<SmartAccountPermissionsDeps>
+): SmartAccountPermissionsDeps {
+  return {
+    getPrividiumAuthToken,
+    fetchFn: fetch,
+    getModularSmartAccountArtifact,
+    apiBaseUrl: env.PRIVIDIUM_API_URL,
+    ...deps
+  };
+}
+
+export async function configureSmartAccountPermissions(
+  contractAddress: Hex,
+  deps: Partial<SmartAccountPermissionsDeps> = {}
+) {
+  const mergedDeps = getSmartAccountPermissionsDeps(deps);
+  const token = await mergedDeps.getPrividiumAuthToken();
+  const contract = await ensureContractRegistered(token, contractAddress, mergedDeps);
   const targetAddress = (contract?.contractAddress || contractAddress) as Hex;
-  const { functions, hasReceive } = getModularSmartAccountArtifact();
+  const { functions, hasReceive } = mergedDeps.getModularSmartAccountArtifact();
 
   if (hasReceive) {
-    await fetch(buildApiUrl('/contract-permissions/'), {
+    await mergedDeps.fetchFn(buildApiUrl('/contract-permissions/', mergedDeps.apiBaseUrl), {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -197,22 +221,25 @@ export async function configureSmartAccountPermissions(contractAddress: Hex) {
     const functionSignature = formatFunctionSignatureForApi(abiItem);
     const methodSelector = toFunctionSelector(selectorSignature);
 
-    const response = await fetch(buildApiUrl('/contract-permissions/'), {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contractAddress: targetAddress,
-        accessType,
-        argumentRestrictions: [],
-        roles: [],
-        functionSignature,
-        methodSelector,
-        ruleType: 'public'
-      })
-    });
+    const response = await mergedDeps.fetchFn(
+      buildApiUrl('/contract-permissions/', mergedDeps.apiBaseUrl),
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contractAddress: targetAddress,
+          accessType,
+          argumentRestrictions: [],
+          roles: [],
+          functionSignature,
+          methodSelector,
+          ruleType: 'public'
+        })
+      }
+    );
 
     if (response.ok) {
       continue;

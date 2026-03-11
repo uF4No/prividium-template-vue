@@ -12,33 +12,50 @@ import { SSO_CONTRACTS } from '../constants';
 import { ensureFactoryDeployed, getFactoryAddress } from './factory';
 import { sendFaucetFunds } from './faucet';
 
+export type DeploySmartAccountDeps = {
+  ensureFactoryDeployed: typeof ensureFactoryDeployed;
+  deployAccountWithoutSDK: typeof deployAccountWithoutSDK;
+  sendFaucetFunds: typeof sendFaucetFunds;
+  configureSmartAccountPermissions: typeof configureSmartAccountPermissions;
+  associateWalletWithUser: typeof associateWalletWithUser;
+};
+
 export async function deploySmartAccount(
   userId: string,
   originDomain: string,
   credentialId: Hex,
-  credentialPublicKey: number[]
+  credentialPublicKey: number[],
+  deps: Partial<DeploySmartAccountDeps> = {}
   // publicKey: { x: Hex; y: Hex }
 ) {
+  const mergedDeps: DeploySmartAccountDeps = {
+    ensureFactoryDeployed,
+    deployAccountWithoutSDK,
+    sendFaucetFunds,
+    configureSmartAccountPermissions,
+    associateWalletWithUser,
+    ...deps
+  };
   console.log('🚀 Deploying smart account...');
   try {
     // Intentionally stripped legacy code comments for brevity
 
     // Ensure factory is deployed/available before using it
-    await ensureFactoryDeployed();
+    await mergedDeps.ensureFactoryDeployed();
 
-    const deployedAddress = await deployAccountWithoutSDK(
+    const deployedAddress = await mergedDeps.deployAccountWithoutSDK(
       originDomain,
       credentialId,
       credentialPublicKey
     );
     console.log('deployed Address:', deployedAddress);
 
-    await sendFaucetFunds(deployedAddress);
+    await mergedDeps.sendFaucetFunds(deployedAddress);
 
     let permissionsConfigured = false;
     let permissionsError: string | undefined;
     try {
-      await configureSmartAccountPermissions(deployedAddress);
+      await mergedDeps.configureSmartAccountPermissions(deployedAddress);
       permissionsConfigured = true;
       console.log(`✅ Configured contract permissions for smart account ${deployedAddress}`);
     } catch (error) {
@@ -51,7 +68,7 @@ export async function deploySmartAccount(
     let walletAddresses: string[] = [];
     if (permissionsConfigured) {
       try {
-        const association = await associateWalletWithUser(userId, deployedAddress);
+        const association = await mergedDeps.associateWalletWithUser(userId, deployedAddress);
         walletAssociated = true;
         walletAddresses = association.wallets;
         if (association.alreadyLinked) {

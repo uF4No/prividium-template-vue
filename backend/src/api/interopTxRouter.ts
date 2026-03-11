@@ -10,7 +10,16 @@ import { createApiResponse } from '@/utils/response/openAPIResponseBuilders';
 import { ServiceResponse } from '@/utils/response/serviceResponse';
 
 export const interopTxRegistry = new OpenAPIRegistry();
-export const interopTxRouter: Router = express.Router();
+const BodySchema = z.object({
+  txHash: z.string().length(66),
+  accountAddress: z.string().length(42)
+});
+
+export type InteropTxRouterDeps = {
+  getReceiptWithL2ToL1: typeof client.zks.getReceiptWithL2ToL1;
+  extractTxMetadata: typeof extractTxMetadata;
+  addPendingTx: typeof addPendingTx;
+};
 
 interopTxRegistry.registerPath({
   method: 'post',
@@ -22,32 +31,43 @@ interopTxRegistry.registerPath({
   }
 });
 
-interopTxRouter.post('/', async (req: Request, res: Response) => {
-  const args = req.body;
-  console.log('Adding new interop tx:', args);
-  let serviceResponse: ServiceResponse<unknown>;
-  const BodySchema = z.object({
-    txHash: z.string().length(66),
-    accountAddress: z.string().length(42)
-  });
-  const parsed = BodySchema.safeParse(args);
-  if (!parsed.success) {
-    serviceResponse = ServiceResponse.failure('Missing transaction hash', null);
-  } else {
-    try {
-      const receipt = await client.zks.getReceiptWithL2ToL1(args.txHash);
-      const metadata = await extractTxMetadata(receipt);
-      // check if tx has correct logs
-      if (metadata.action !== 'Deposit' && metadata.action !== 'Withdrawal') {
-        serviceResponse = ServiceResponse.failure('Invalid transaction', null);
-      } else {
-        console.log('ADDING PENDING TX..');
-        addPendingTx(args.txHash, metadata, args.accountAddress);
-        serviceResponse = ServiceResponse.success('Transaction added.', null);
+export function createInteropTxRouter(deps: Partial<InteropTxRouterDeps> = {}): Router {
+  const getReceiptWithL2ToL1 = deps.getReceiptWithL2ToL1 ?? client.zks.getReceiptWithL2ToL1;
+  const extractTxMetadataFn = deps.extractTxMetadata ?? extractTxMetadata;
+  const addPendingTxFn = deps.addPendingTx ?? addPendingTx;
+  const router = express.Router();
+
+  router.post('/', async (req: Request, res: Response) => {
+    const args = req.body;
+    console.log('Adding new interop tx:', args);
+    let serviceResponse: ServiceResponse<unknown>;
+    const parsed = BodySchema.safeParse(args);
+    if (!parsed.success) {
+      serviceResponse = ServiceResponse.failure('Missing transaction hash', null);
+    } else {
+      try {
+        const receipt = await getReceiptWithL2ToL1(parsed.data.txHash as `0x${string}`);
+        const metadata = await extractTxMetadataFn(receipt);
+        // check if tx has correct logs
+        if (metadata.action !== 'Deposit' && metadata.action !== 'Withdrawal') {
+          serviceResponse = ServiceResponse.failure('Invalid transaction', null);
+        } else {
+          console.log('ADDING PENDING TX..');
+          addPendingTxFn(
+            parsed.data.txHash as `0x${string}`,
+            metadata,
+            parsed.data.accountAddress as `0x${string}`
+          );
+          serviceResponse = ServiceResponse.success('Transaction added.', null);
+        }
+      } catch (error) {
+        serviceResponse = ServiceResponse.failure('Error fetching transaction', { error });
       }
-    } catch (error) {
-      serviceResponse = ServiceResponse.failure('Error fetching transaction', { error });
     }
-  }
-  res.status(serviceResponse.statusCode).send(serviceResponse);
-});
+    res.status(serviceResponse.statusCode).send(serviceResponse);
+  });
+
+  return router;
+}
+
+export const interopTxRouter = createInteropTxRouter();
