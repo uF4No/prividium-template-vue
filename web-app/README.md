@@ -107,7 +107,20 @@ pnpm preview      # Preview production build
 pnpm build        # Full production build
 pnpm build-only   # Build without type checking
 pnpm typecheck    # TypeScript type checking only
+
+# Testing
+pnpm test             # Unit/component tests
+pnpm test:watch       # Watch mode
+pnpm test:coverage    # Coverage report
+pnpm test:integration # Live integration checks (gated)
 ```
+
+## Testing notes
+
+- Unit/component tests run in `jsdom` with browser API stubs configured in `vitest.setup.ts`.
+- Integration tests are skipped unless `RUN_LIVE_PRIVIDIUM_TESTS=1`.
+- The web integration test checks the configured backend health endpoint (`VITE_BACKEND_URL`).
+- For root orchestration commands (`test:unit`, `test:ci`, `test:integration:local`), see `../TESTING.md`.
 
 ## Environment Variables
 
