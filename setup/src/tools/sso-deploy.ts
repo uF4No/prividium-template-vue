@@ -143,6 +143,7 @@ export async function deploySsoContracts(config: SsoDeployConfig): Promise<SsoDe
 
   async function assertSufficientDeployerBalance() {
     const deploymentEstimates: Array<{ label: string; gas: bigint }> = [];
+    console.log('🔎 Checking deployer balance for SSO contract deployment...');
     const gasPrice = await publicClient.getGasPrice();
     const balance = await publicClient.getBalance({ address: account.address });
 

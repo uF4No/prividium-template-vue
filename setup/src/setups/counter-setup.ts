@@ -64,7 +64,8 @@ export async function setupCounterDapp(
     rpcUrl: deployConfig.rpcUrl,
     privateKey: deployConfig.privateKey,
     chainId: deployConfig.chainId,
-    authToken: deployConfig.authToken
+    authToken: deployConfig.authToken,
+    deploymentLabel: 'app contract deployment'
   })) as Record<string, `0x${string}`>;
 
   for (const [contractName, contractAddress] of Object.entries(deployedContracts)) {

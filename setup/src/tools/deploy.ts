@@ -19,6 +19,7 @@ type DeployOptions = {
   privateKey: string;
   chainId: number;
   authToken?: string;
+  deploymentLabel?: string;
 };
 
 type DeployedContracts = Record<string, Address>;
@@ -80,6 +81,7 @@ export async function deployAndExtractAddress(
 
   const publicClient = createPublicClient({ chain, transport });
   const walletClient = createWalletClient({ chain, transport, account });
+  const deploymentLabel = options.deploymentLabel ?? 'contract deployment';
 
   const artifacts = artifactPaths.map((artifactPath) => {
     const artifactJson = JSON.parse(
@@ -97,6 +99,7 @@ export async function deployAndExtractAddress(
     };
   });
 
+  console.log(`🔎 Checking deployer balance for ${deploymentLabel}...`);
   const gasPrice = await publicClient.getGasPrice();
   const balance = await publicClient.getBalance({ address: account.address });
   const gasEstimates = await Promise.all(
@@ -123,7 +126,7 @@ export async function deployAndExtractAddress(
 
   if (balance < requiredWei) {
     throw new Error(
-      `Insufficient deployer balance for contract deployment. Address: ${account.address}. ` +
+      `Insufficient deployer balance for ${deploymentLabel}. Address: ${account.address}. ` +
         `Available: ${formatEther(balance)} ETH. ` +
         `Estimated minimum required (including 20% buffer): ${formatEther(requiredWei)} ETH. ` +
         `Artifacts: ${gasEstimates.map(({ artifactPath }) => path.basename(artifactPath)).join(', ')}.`
@@ -131,7 +134,7 @@ export async function deployAndExtractAddress(
   }
 
   console.log(
-    `✅ Deployer balance check passed for ${gasEstimates.length} contract deployment(s): ${formatEther(balance)} ETH available, ${formatEther(requiredWei)} ETH required with buffer.`
+    `✅ Deployer balance check passed for ${deploymentLabel}: ${formatEther(balance)} ETH available, ${formatEther(requiredWei)} ETH required with buffer across ${gasEstimates.length} contract deployment(s).`
   );
 
   const deployed: DeployedContracts = {};
