@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+export class ServiceAssertionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ServiceAssertionError';
+  }
+}
+
 function normalizeBaseUrl(rawBaseUrl: string): string {
   return rawBaseUrl.replace(/\/+$/, '');
 }
@@ -39,10 +46,9 @@ export async function assertPrividiumApiUp(baseUrl: string): Promise<string> {
     }
   }
 
-  console.error(
+  throw new ServiceAssertionError(
     'Invalid response from prividium api. Please start local prividium api and try again'
   );
-  process.exit(1);
 }
 
 const chainIdSchema = z.object({
@@ -63,25 +69,26 @@ export async function assertZksyncOsIsUp(url: string, expectedChainId?: bigint) 
     });
 
     if (res.status !== 200) {
-      console.error('Invalid response from zksyncos. Cannot continue with setup.');
-      process.exit(1);
+      throw new ServiceAssertionError('Invalid response from zksyncos. Cannot continue with setup.');
     }
 
     const json = await res.json();
     const parsed = chainIdSchema.safeParse(json);
 
     if (!parsed.success) {
-      console.error(`Unexpected response interacting with rpc: ${JSON.stringify(json)}`);
-      process.exit(1);
+      throw new ServiceAssertionError(
+        `Unexpected response interacting with rpc: ${JSON.stringify(json)}`
+      );
     }
     if (expectedChainId !== undefined && parsed.data.result !== expectedChainId) {
-      console.error(
+      throw new ServiceAssertionError(
         `Unexpected network id from zksyncos. expected: ${expectedChainId} , received: ${parsed.data.result}`
       );
-      process.exit(1);
     }
-  } catch {
-    console.error('zksyncos down. Please start deps and try again');
-    process.exit(1);
+  } catch (error) {
+    if (error instanceof ServiceAssertionError) {
+      throw error;
+    }
+    throw new ServiceAssertionError('zksyncos down. Please start deps and try again');
   }
 }
