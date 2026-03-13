@@ -170,6 +170,7 @@ We provide several convenient scripts at the root level:
 - `pnpm test:unit`: Same as `pnpm test`.
 - `pnpm test:ci`: Runs `test:unit` plus the setup Anvil deployment smoke test.
 - `pnpm test:integration:local`: Runs opt-in live integration tests (requires local Prividium services running).
+- `pnpm test:contracts`: Runs only `forge test` in `contracts`.
 - `pnpm lint`: Runs Biome linter on all supported files.
 - `pnpm format`: Automatically formats the codebase using Biome and Forge.
 - `pnpm check`: Runs both linting and formatting verification.
@@ -189,6 +190,8 @@ pnpm --filter prividium-setup test:anvil-smoke
 ```bash
 pnpm test:integration:local
 ```
+
+For full testing commands and env behavior, see [`TESTING.md`](./TESTING.md).
 
 ## Troubleshooting
 

@@ -104,5 +104,12 @@ after running setup scripts.
 - `pnpm build`: Typecheck and build the production bundle.
 - `pnpm start`: Run the built server from `dist/`.
 - `pnpm test`: Run backend unit tests (mocked API/RPC dependencies).
+- `pnpm test:watch`: Run backend tests in watch mode.
 - `pnpm test:coverage`: Run unit tests with coverage output.
 - `pnpm test:integration`: Run live integration tests. These are skipped unless `RUN_LIVE_PRIVIDIUM_TESTS=1`.
+
+## Testing notes
+
+- Unit tests run with deterministic defaults from `vitest.setup.ts`, so they do not depend on a fully populated local `.env`.
+- Integration tests hit live endpoints and are gated behind `RUN_LIVE_PRIVIDIUM_TESTS=1`.
+- For full repo-level test orchestration, see `../TESTING.md`.

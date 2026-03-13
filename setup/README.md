@@ -81,9 +81,17 @@ This script will execute the flow defined in `src/main.ts`, which by default:
 6. `pnpm refresh:env` — re-sync `.env` files from `config/contracts.json`.
 7. `pnpm typecheck` — TypeScript typecheck for this package.
 8. `pnpm test` — setup package unit tests (mocked API/RPC/deploy dependencies).
-9. `pnpm test:coverage` — unit tests with coverage report.
-10. `pnpm test:anvil-smoke` — deploy helper smoke test against local Anvil (used in CI).
-11. `pnpm test:integration` — live integration checks; skipped unless `RUN_LIVE_PRIVIDIUM_TESTS=1`.
+9. `pnpm test:watch` — unit tests in watch mode.
+10. `pnpm test:coverage` — unit tests with coverage report.
+11. `pnpm test:anvil-smoke` — deploy helper smoke test against local Anvil (used in CI).
+12. `pnpm test:integration` — live integration checks; skipped unless `RUN_LIVE_PRIVIDIUM_TESTS=1`.
+
+## Testing notes
+
+- Unit tests use controlled defaults from `vitest.setup.ts` for API/auth/RPC URLs.
+- `test:anvil-smoke` is a real deployment smoke check against a local Anvil node.
+- `test:integration` is local/manual only and intentionally gated behind `RUN_LIVE_PRIVIDIUM_TESTS=1`.
+- For repo-level test commands, see `../TESTING.md`.
 
 ## Source of Truth
 
