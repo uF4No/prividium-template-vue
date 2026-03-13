@@ -17,7 +17,7 @@ jobs:
           version: 9.2.0
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install
@@ -27,8 +27,8 @@ jobs:
       - name: Run Biome
         run: pnpm check
 
-  build-contracts:
-    name: Build Contracts
+  contracts:
+    name: Contracts Build + Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,14 +36,15 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: stable
-      - name: Build
+      - name: Build and Test
         run: |
           cd contracts
           [ -d lib/forge-std/src ] || forge install foundry-rs/forge-std@v1.9.6 --no-git
           forge build
+          forge test
 
-  build-web-app:
-    name: Build Web App
+  unit-tests:
+    name: Unit Tests + Coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,9 +53,47 @@ jobs:
           version: 9.2.0
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install
-      - name: Build
-        run: pnpm --filter web-app build
+      - name: Run backend coverage
+        run: pnpm --filter sso-interop-backend test:coverage
+      - name: Run setup coverage
+        run: pnpm --filter prividium-setup test:coverage
+      - name: Run web-app coverage
+        run: pnpm --filter web-app test:coverage
+      - name: Upload Coverage Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            backend/coverage
+            setup/coverage
+            web-app/coverage
+          if-no-files-found: error
+
+  anvil-smoke:
+    name: Anvil Deployment Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.2.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - name: Install dependencies
+        run: pnpm install
+      - name: Install forge-std dependency
+        run: |
+          cd contracts
+          [ -d lib/forge-std/src ] || forge install foundry-rs/forge-std@v1.9.6 --no-git
+      - name: Run Anvil smoke tests
+        run: pnpm --filter prividium-setup test:anvil-smoke
