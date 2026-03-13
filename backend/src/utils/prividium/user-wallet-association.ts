@@ -15,8 +15,8 @@ type UpdateUserWalletsPayload = {
   wallets: string[];
 };
 
-function buildApiUrl(path: string) {
-  const base = env.PRIVIDIUM_API_URL.replace(/\/+$/, '');
+function buildApiUrl(path: string, apiBaseUrl: string) {
+  const base = apiBaseUrl.replace(/\/+$/, '');
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${base}${normalizedPath}`;
 }
@@ -25,11 +25,31 @@ function normalizeAddress(address: string): string {
   return address.toLowerCase();
 }
 
-export async function associateWalletWithUser(userId: string, walletAddress: Hex) {
-  const token = await getPrividiumAuthToken();
-  const userUrl = buildApiUrl(`/users/${encodeURIComponent(userId)}`);
+export type AssociateWalletDeps = {
+  getPrividiumAuthToken: typeof getPrividiumAuthToken;
+  fetchFn: typeof fetch;
+  apiBaseUrl: string;
+};
 
-  const getResponse = await fetch(userUrl, {
+function getAssociationDeps(overrides: Partial<AssociateWalletDeps>): AssociateWalletDeps {
+  return {
+    getPrividiumAuthToken,
+    fetchFn: fetch,
+    apiBaseUrl: env.PRIVIDIUM_API_URL,
+    ...overrides
+  };
+}
+
+export async function associateWalletWithUser(
+  userId: string,
+  walletAddress: Hex,
+  deps: Partial<AssociateWalletDeps> = {}
+) {
+  const mergedDeps = getAssociationDeps(deps);
+  const token = await mergedDeps.getPrividiumAuthToken();
+  const userUrl = buildApiUrl(`/users/${encodeURIComponent(userId)}`, mergedDeps.apiBaseUrl);
+
+  const getResponse = await mergedDeps.fetchFn(userUrl, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`
@@ -60,7 +80,7 @@ export async function associateWalletWithUser(userId: string, walletAddress: Hex
     wallets: [...existingWallets, walletAddress]
   };
 
-  const putResponse = await fetch(userUrl, {
+  const putResponse = await mergedDeps.fetchFn(userUrl, {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${token}`,

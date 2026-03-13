@@ -1,6 +1,8 @@
-import { app, logger, stopWorker } from '@/server';
+import { app, logger, startBackgroundServices } from '@/server';
 
 import { env } from './utils/envConfig';
+
+const stopWorker = startBackgroundServices();
 
 const server = app.listen(env.PORT, () => {
   const { NODE_ENV, HOST, PORT } = env;

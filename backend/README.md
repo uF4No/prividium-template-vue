@@ -103,3 +103,6 @@ after running setup scripts.
 - `pnpm dev`: Run the backend in watch mode.
 - `pnpm build`: Typecheck and build the production bundle.
 - `pnpm start`: Run the built server from `dist/`.
+- `pnpm test`: Run backend unit tests (mocked API/RPC dependencies).
+- `pnpm test:coverage`: Run unit tests with coverage output.
+- `pnpm test:integration`: Run live integration tests. These are skipped unless `RUN_LIVE_PRIVIDIUM_TESTS=1`.

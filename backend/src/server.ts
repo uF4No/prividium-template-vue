@@ -19,30 +19,34 @@ import { env } from './utils/envConfig';
 import { processQueue } from './utils/relayer/relayer';
 
 const logger = pino({ name: 'server start' });
-const app: Express = express();
+function buildApp(): Express {
+  const app: Express = express();
 
-// Set the application to trust the reverse proxy
-app.set('trust proxy', true);
+  // Set the application to trust the reverse proxy
+  app.set('trust proxy', true);
 
-// Middlewares
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
-app.use(helmet());
-app.use(rateLimiter);
+  // Middlewares
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+  app.use(helmet());
+  app.use(rateLimiter);
 
-// Request logging
-app.use(requestLogger);
+  // Request logging
+  app.use(requestLogger);
 
-// Routes
-app.use('/health-check', healthCheckRouter);
-app.use('/deploy-account', deployAccountRouter);
-app.use('/faucet', faucetRouter);
-app.use('/status', statusRouter);
-app.use('/new-l1-interop-tx', interopTxRouter);
+  // Routes
+  app.use('/health-check', healthCheckRouter);
+  app.use('/deploy-account', deployAccountRouter);
+  app.use('/faucet', faucetRouter);
+  app.use('/status', statusRouter);
+  app.use('/new-l1-interop-tx', interopTxRouter);
 
-// Error handlers
-app.use(errorHandler());
+  // Error handlers
+  app.use(errorHandler());
+
+  return app;
+}
 
 function startBackgroundWorker() {
   mkdirSync(TXNS_STATE_FOLDER, { recursive: true });
@@ -70,13 +74,19 @@ function startBackgroundWorker() {
   return () => clearInterval(id);
 }
 
-const stopWorker = startBackgroundWorker();
+function startBackgroundServices() {
+  const stopWorker = startBackgroundWorker();
 
-// Check factory once on startup (do not block server start)
-setTimeout(() => {
-  ensureFactoryDeployed().catch((err) => {
-    logger.error({ err }, 'ensureFactoryDeployed failed');
-  });
-}, 0);
+  // Check factory once on startup (do not block server start)
+  setTimeout(() => {
+    ensureFactoryDeployed().catch((err) => {
+      logger.error({ err }, 'ensureFactoryDeployed failed');
+    });
+  }, 0);
 
-export { app, logger, stopWorker };
+  return stopWorker;
+}
+
+const app = buildApp();
+
+export { app, logger, startBackgroundServices };
