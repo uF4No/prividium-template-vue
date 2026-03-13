@@ -1,6 +1,6 @@
-import { ref } from 'vue';
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ref } from 'vue';
 
 const push = vi.hoisted(() => vi.fn());
 const authenticate = vi.hoisted(() => vi.fn(async () => true));
@@ -14,7 +14,11 @@ const saveAccountAddress = vi.hoisted(() => vi.fn());
 const isAuthenticated = ref(false);
 const isAuthenticating = ref(false);
 const authError = ref<string | null>(null);
-const userProfile = ref<any>(null);
+const userProfile = ref<{
+  userId: string;
+  walletAddresses: string[];
+  wallets: Array<{ walletAddress: string }>;
+} | null>(null);
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push }),

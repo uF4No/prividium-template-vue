@@ -6,8 +6,9 @@ import {
   saveAccountAddress,
   savePasskeyCredentials
 } from '../../src/utils/sso/passkeys';
+import type { PasskeyCredential } from '../../src/utils/sso/types';
 
-const SAMPLE_PASSKEY = {
+const SAMPLE_PASSKEY: PasskeyCredential = {
   credentialId: 'credential-id',
   credentialPublicKey: [1, 2, 3],
   userName: 'alice',
@@ -20,7 +21,7 @@ describe('passkey storage helpers', () => {
   });
 
   it('saves and loads passkey/account from localStorage', () => {
-    savePasskeyCredentials(SAMPLE_PASSKEY as any);
+    savePasskeyCredentials(SAMPLE_PASSKEY);
     saveAccountAddress('0x0000000000000000000000000000000000000001');
 
     const { savedPasskey, savedAccount } = loadExistingPasskey();
@@ -30,7 +31,7 @@ describe('passkey storage helpers', () => {
   });
 
   it('clears stored passkey state', () => {
-    savePasskeyCredentials(SAMPLE_PASSKEY as any);
+    savePasskeyCredentials(SAMPLE_PASSKEY);
     saveAccountAddress('0x0000000000000000000000000000000000000001');
 
     clearStoredSsoState();

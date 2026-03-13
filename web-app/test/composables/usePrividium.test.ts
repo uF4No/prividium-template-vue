@@ -14,6 +14,8 @@ vi.mock('prividium', () => ({
 
 beforeEach(() => {
   vi.resetModules();
+  vi.unstubAllEnvs();
+  vi.stubEnv('VITE_PRIVIDIUM_API_URL', 'http://localhost:8000/api');
   fetchUser.mockReset();
   authorize.mockReset();
   unauthorize.mockReset();
@@ -39,6 +41,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 describe('usePrividium', () => {

@@ -91,5 +91,9 @@ jobs:
           version: stable
       - name: Install dependencies
         run: pnpm install
+      - name: Install forge-std dependency
+        run: |
+          cd contracts
+          [ -d lib/forge-std/src ] || forge install foundry-rs/forge-std@v1.9.6 --no-git
       - name: Run Anvil smoke tests
         run: pnpm --filter prividium-setup test:anvil-smoke

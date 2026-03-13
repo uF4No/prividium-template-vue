@@ -6,7 +6,9 @@ const getAccount = vi.hoisted(() => vi.fn());
 const getChainId = vi.hoisted(() => vi.fn());
 const watchAccount = vi.hoisted(() => vi.fn());
 const metaMask = vi.hoisted(() => vi.fn(() => ({ id: 'metaMask' })));
-const getWalletRpcUrl = vi.hoisted(() => vi.fn(async () => 'http://localhost:5050/rpc/wallet/token'));
+const getWalletRpcUrl = vi.hoisted(() =>
+  vi.fn(async () => 'http://localhost:5050/rpc/wallet/token')
+);
 
 vi.mock('@wagmi/core', () => ({
   connect,
@@ -89,7 +91,7 @@ describe('useWallet', () => {
     watchAccount.mockImplementation(() => {});
 
     let chainIdHex = '0x1';
-    const request = vi.fn(async ({ method, params }: { method: string; params?: any[] }) => {
+    const request = vi.fn(async ({ method, params }: { method: string; params?: unknown[] }) => {
       if (method === 'eth_chainId') {
         return chainIdHex;
       }

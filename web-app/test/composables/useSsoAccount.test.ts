@@ -1,6 +1,6 @@
-import { defineComponent, ref } from 'vue';
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { defineComponent, ref } from 'vue';
 
 import { clearStoredSsoState, saveAccountAddress } from '../../src/utils/sso/passkeys';
 
@@ -33,7 +33,9 @@ describe('useSsoAccount', () => {
 
     const wrapper = mount(TestComponent);
 
-    expect((wrapper.vm as any).account).toBe('0x0000000000000000000000000000000000000001');
+    expect((wrapper.vm as { account: string | null }).account).toBe(
+      '0x0000000000000000000000000000000000000001'
+    );
     wrapper.unmount();
   });
 
@@ -43,7 +45,7 @@ describe('useSsoAccount', () => {
 
     const wrapper = mount(TestComponent);
 
-    expect((wrapper.vm as any).account).toBeNull();
+    expect((wrapper.vm as { account: string | null }).account).toBeNull();
     wrapper.unmount();
   });
 });
